@@ -44,30 +44,51 @@
 #define BOX2_THIRD 5
 
 	/* each box has a separate array of labels */
-tSelectLabel pSBoxData1[]={
-		{0,0,"VOLT", BOX1_VOLT},
-		{0,0,"ACCEL", BOX1_ACCEL},
+tSelectLabel pConfigFreq[]={
+		{0,0,"10 Hz", 10},
+		{0,0,"100 Hz", 100},
+		{0,0,"1000 Hz", 1000},
 		{0,0,0,0} /* required all zero struct to terminate labels 	*/
 };
 
-tSelectLabel pSBoxData2[]={
-		{0,0,"first", BOX2_FIRST},
-		{0,0,"second",BOX2_SECOND},
-		{0,0,"third",BOX2_THIRD},
+tSelectLabel pConfigSample[]={
+		{0,0,"1", 1},
+		{0,0,"2",2},
+		{0,0,"4",4},
+		{0,0,"8", 8},
+		{0,0,"16",16},
+		{0,0,"32",32},
 		{0,0,0,0} /* required all zero struct to terminate labels 	*/
 };
 
+/* each box has a separate array of labels */
+tSelectLabel pConfigChannel[]={
+	{0,0,"ACCEL", ACCEL},
+	{0,0,"VOLTS", VOLTS},
+	{0,0,0,0} /* required all zero struct to terminate labels 	*/
+};
+
+
+tSelectLabel pStartLabel[] = {{0,0,"Start",0},{0,0,0,0}};
 /*
  * array defining all boxes used (2 in this example)
  * definition must reference a label array previously defined
  */
 tSelectBox pSBoxDefinitions[] = {
 		/*        labels        xpos  ypos  boxid 					*/
-		{ 0, 0, pSBoxData1, 0, XPOS1, YPOS1, BOX1},
-		{ 0, 0, pSBoxData2, 0, XPOS2, YPOS2, BOX2},
-		{0,0,0,0,0,0,0} /* required all zero struct to end boxes 	*/
+		{ 0, 0, pConfigFreq, "Config Freq", 0},
+		{ 0, 0, pConfigSample, "Config Size", 1},
+		{ 0, 0, pConfigChannel, "Config Chl", 2},
+		{0,0, pStartLabel,"Start Graph?",3},
+		{0,0,0,0,0}	/* required all zero struct to end boxes 	*/
 };
 
+/***********************************************
+ *
+ * Stores User Configuration
+ ************************************************/
+tuiConfig uiConfig = {10,1, ACCEL};
+volatile tContext sContext; 	/* needed for graphics */
 /*--------------------------------SBOX IMPLEMENTATION-------------------------------*/
 
 
@@ -104,37 +125,35 @@ tSelectBox *MakeSBoxList(tSelectBox *pSBoxDefs)
 {
 	tSelectBox *pb;
 	tSelectLabel *plab;
-	for (pb = pSBoxDefs; pb->items; pb++)
+	for (pb = pSBoxDefs; pb->labels; pb++)
 	{
 		if  (pb == pSBoxDefs) {
 			/*link first box */
 			pb->bnext = pb->bprev = pb;
 		} else {
 			/* link other boxes */
-			pb->bprev = (pb-1)->bnext;
-			pb->bnext = (pb-1);
-			pb->bnext->bprev = pb;
+			pb->bprev = (pb-1);
 			pb->bprev->bnext = pb;
+			pb->bnext = pb;
 		}
 
-		plab = pb->items; /* this is the start of the list of labels */
+		plab = pb->labels; /* this is the start of the list of labels */
 		/* link labels into pb->items list */
-		for (plab=pb->items; plab->lab; plab++)
+		for (plab=pb->labels; plab->text; plab++)
 		{
-			if (plab == pb->items) {
+			if (plab == pb->labels) {
 				/* link first label */
 				plab->lnext = plab->lprev = plab;
 			} else {
 				/*link other labels */
-				plab->lprev = pb->items->lnext;
-				plab->lnext = pb->items;
-				plab->lnext->lprev = plab;
+				plab->lprev = plab-1;
 				plab->lprev->lnext = plab;
+				plab->lnext= plab;
 
 			}
 			/* make sure the box width is the size of teh longest label */
-			if (pb->width < len(plab->lab))
-				pb->width = len(plab->lab);
+//			if (pb->width < len(plab->lab))
+//				pb->width = len(plab->lab);
 		}
 	}
 	return pSBoxDefs;
@@ -145,6 +164,14 @@ void WriteString(tContext *context, const char *s, int selected, int xpos, int y
 {
 	int colbg = ClrBlack;
 	int colfg = ClrWhite;
+	// Clear Display First.
+	tRectangle sRect;
+	sRect.i16XMin = xpos*6;
+	sRect.i16YMin = ypos*8;
+	sRect.i16XMax = (xpos+13)*6;
+	sRect.i16YMax =  (ypos+1)*8;
+  GrContextForegroundSet(context, ClrBlack);
+  GrRectFill(context, &sRect);
 	if (selected)
 	{
 		colbg = ClrDarkGreen;
@@ -156,27 +183,28 @@ void WriteString(tContext *context, const char *s, int selected, int xpos, int y
 }
 
 
-
-
 void vPaintSBoxes(tContext *context)
 {
 	tSelectBox *p = pCurrentSBox;
-	int is_selected, i;
-	while (1)
-	{
-		is_selected = (p == pCurrentSBox);
-		WriteString(context, p->items->lab, is_selected, p->xpos, p->ypos);
-		for (i = len(p->items->lab); i < p->width; i++)
-		{
-			WriteString(context, " ", is_selected, p->xpos+i, p->ypos);
-		}
-		p = p->bnext;
-		if (p == pCurrentSBox) break;
-	}
+	tSelectLabel* pLabel;
+		// First Draw Title
+	WriteString(context, p->title, 0, 3, 2);
+	pLabel = pCurrentSBox->labels;
+	// Secondly Draw the Option
+	WriteString(context, pLabel->text, 1, 3, 4);
     GrFlush( context);
-
 }
-
+void
+processOptions() {
+	if (pCurrentSBox == &pSBoxDefinitions[0])
+		uiConfig.freq = pCurrentSBox->labels->value;
+	if (pCurrentSBox == &pSBoxDefinitions[1])
+		uiConfig.sample_size = pCurrentSBox->labels->value;
+	if (pCurrentSBox == &pSBoxDefinitions[2])
+		uiConfig.channelOpt = pCurrentSBox->labels->value;
+	if (pCurrentSBox ==  &pSBoxDefinitions[3]){}
+//		Start Logging
+}
 void vPollSBoxButton(void (*doBoxChange)( int, int))
 {
 	uint8_t buttons, buttons_raw;
@@ -187,27 +215,30 @@ void vPollSBoxButton(void (*doBoxChange)( int, int))
 	if (buttons & DOWN_BUTTON)
 		pCurrentSBox = pCurrentSBox->bnext;
 	if (buttons & LEFT_BUTTON)
-		pCurrentSBox->items = pCurrentSBox->items->lprev;
+		pCurrentSBox->labels = pCurrentSBox->labels->lprev;
 	if (buttons & RIGHT_BUTTON)
-		pCurrentSBox->items = pCurrentSBox->items->lnext;
-	if (buttons & (UP_BUTTON | DOWN_BUTTON | LEFT_BUTTON | RIGHT_BUTTON))
-		if (doBoxChange)
-			doBoxChange(pCurrentSBox->boxid, pCurrentSBox->items->value);
+		pCurrentSBox->labels = pCurrentSBox->labels->lnext;
+	if (buttons & SELECT_BUTTON)
+		processOptions();
+	if (buttons & (UP_BUTTON | DOWN_BUTTON | LEFT_BUTTON | RIGHT_BUTTON |SELECT_BUTTON))
+		vPaintSBoxes(&sContext);
 }
 
-int iSBoxValueGet( int id)
-{
-	tSelectBox *p = pCurrentSBox;
-	while (1)
-	{
-		if (p->boxid == id)
-			return p->items->value;
-		p = p->bnext;
-		if (p == pCurrentSBox)
-			break;
-	}
-	return 0;
-}
+
+
+//int iSBoxValueGet( int id)
+//{
+//	tSelectBox *p = pCurrentSBox;
+//	while (1)
+//	{
+//		if (p->boxid == id)
+//			return p->items->value;
+//		p = p->bnext;
+//		if (p == pCurrentSBox)
+//			break;
+//	}
+//	return 0;
+//}
 
 /*------------------------------EXAMPLE CODE USING SBOXES-------------------------*/
 
@@ -218,11 +249,11 @@ void vInitSBoxes(void)
 
 void vTestSBoxes(void)
 {
-	tContext sContext; 	/* needed for graphics */
+//	tContext sContext; 	/* needed for graphics */
     CFAL96x64x16Init(); /* initialise controller */
     ButtonsInit(); 		/* initialise buttons */
-    char str[17];		/* space for string printed */
-    int b1, b2;
+//    char str[17];		/* space for string printed */
+//    int b1, b2;
 
     //
     // Initialize the graphics context.
@@ -230,15 +261,15 @@ void vTestSBoxes(void)
     GrContextInit(&sContext, &g_sCFAL96x64x16);
 
 	vInitSBoxes(); /* set up to test SBoxes */
-
+	vPaintSBoxes(&sContext);
 	while (1) {
 		/* vProcessSBoxButton should be called regularly */
 		vPollSBoxButton(0); 					/* poll keys, changing SBoxes if needed */
-		vPaintSBoxes(&sContext);				/* display current SBox contents */
-		b1 = iSBoxValueGet(BOX1);				/* get values of SBoxes */
-		b2 = iSBoxValueGet(BOX2);
-		usprintf(str, "box: 1=%d,2=%d", b1, b2);/* print out values on bottom line */
-		WriteString(&sContext, str, 0, 0, 7);
+						/* display current SBox contents */
+//		b1 = iSBoxValueGet(BOX1);				/* get values of SBoxes */
+//		b2 = iSBoxValueGet(BOX2);
+//		usprintf(str, "box: 1=%d,2=%d", b1, b2);/* print out values on bottom line */
+//		WriteString(&sContext, str, 0, 0, 7);
 	}
 }
 

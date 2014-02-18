@@ -18,7 +18,7 @@ typedef struct tsl
 {
 	struct tsl *lnext;
 	struct tsl *lprev;
-	const char *lab; 	/* pointer into list of labels */
+	const char *text; 	/* pointer into list of labels */
 	int value; 			/* integer constant identifying label */
 } tSelectLabel;
 
@@ -27,13 +27,20 @@ typedef struct tsb
 {
 	struct tsb *bnext;
 	struct tsb *bprev;
-	tSelectLabel *items; 	/* pointer into list of labels */
-	int width; 				/* max number of characters of any label - size of SBox */
-	uint8_t xpos; 			/* x pos of SBox in characters (0 to 15) */
-	uint8_t ypos; 			/* y pos of SBox in characters (0 to 7) */
+	tSelectLabel *labels; 	/* pointer into list of labels */
+//	int count; 				/* max number of characters of any label - size of SBox */
+	const char *title;
 	int boxid;				/* integer constant identifying SBox */
 } tSelectBox;
 
+typedef enum channel_enum{ACCEL, VOLTS} channel_enum;
+/* Option Configuration Structure to Store User's Option */
+typedef struct tsOpt
+{
+	uint32_t freq;
+	uint32_t sample_size;
+	channel_enum channelOpt;
+} tuiConfig;
 
 /*-------------------------------EXPORTED FUNCTIONS-------------------------------*/
 

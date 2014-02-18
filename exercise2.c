@@ -127,7 +127,7 @@ const uint32_t timer1_period = 5000; // 50E6 * 0.0001
 //*****************************************************************************
 const uint32_t systick_period = 6550;// 50E6 * 0.000131
 
-tContext sContext;
+//tContext sContext;
 //*****************************************************************************
 //
 // Configure the UART and its pins.  This must be called before UARTprintf().
