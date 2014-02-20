@@ -59,12 +59,16 @@ volatile uint32_t steplen;
 #define MAX_NUM 999999999
 uint32_t datapoints[3] = {MAX_NUM,0,0};
 /****************************************************************
- * Pointer to next line of ADC buffer for processing.
+ * Pointer to NEXT line of ADC buffer for processing.
  ***************************************************************/
 volatile int p_processingPtr = 0;
-
+/****************************************************************
+ * Buffer to store the read ADC values.
+ ****************************************************************/
 volatile uint32_t pui32ADC0Value[8];
-
+/****************************************************************
+ * Stores the user's options.
+ ****************************************************************/
 volatile tuiConfig* puiConfig;
 /************************************************************
  * Reads the ADC buffer to compute the min, max and ave data points.
@@ -201,18 +205,12 @@ AcquireStart(tuiConfig* p_uiConfig) {
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
 
 	//
-	// For this example ADC0 is used with AIN0 on port E7.
-	// The actual port and pins used may be different on your part, consult
-	// the data sheet for more information.  GPIO port E needs to be enabled
-	// so these pins can be used.
-	// TODO: change this to whichever GPIO port you are using.
+	//  GPIO port E needs to be enabled so the GPIO pins can be used.
 	//
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
 
 	//
 	// Select the analog ADC function for these pins.
-	// Consult the data sheet to see which functions are allocated per pin.
-	// TODO: change this to select the port/pin you are using.
 	//
 	if (p_uiConfig->channelOpt == ACCEL) {
 		GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_6);
@@ -263,8 +261,6 @@ AcquireStart(tuiConfig* p_uiConfig) {
 		}
 		ADCSequenceStepConfigure(ADC0_BASE, sequence, step, config);
 	}
-//	    ADCSequenceStepConfigure(ADC0_BASE, sequence, 0, config | ADC_CTL_IE |
-//	                             ADC_CTL_END);
 
 	//
 	// Since sample sequence 3 is now configured, it must be enabled.
@@ -281,11 +277,13 @@ AcquireStart(tuiConfig* p_uiConfig) {
 	ConfigTimer0(GetPeriod(p_uiConfig->freq));
 }
 
-// Returns Accelerometer value in g*100
+// Returns Accelerometer value in g*100 read raw from ADC buffer.
 int ReadAccel(uint32_t value) {
 	return (2442*(int)value - 5000000)/10000;
 }
+// Described with its implementation.
 void AcquireInit(tuiConfig* p_uiConfig);
+
 /***************************************************************
  * Main function to execute the acquire function. This starts the ADC
  * and plots the values on the graph. It is an infinite loop that
@@ -342,9 +340,28 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 	}
 
 }
+
+/****************************************************************
+ * Defines the threshold voltage for the volts trigger detection.
+ ****************************************************************/
 # define VTHRES 104
+
+/****************************************************************
+ * Used to indicate the first entry to TriggerDetectISR.
+ ****************************************************************/
 volatile bool first = true;
+
+/****************************************************************
+ * Stores the previous value of the accelerometer z-axis 100ms ago.
+ ****************************************************************/
 volatile int prev_value = 0;
+
+/****************************************************************
+ * This interrupt handler is set up by AcquireInit to check
+ * for the events that begin a data logging. This is when the voltage
+ * exceeds a changeable threshold or
+ * the accelerometer z-axis changes g by more than 0.5.
+ *****************************************************************/
 void TriggerDetectISR() {
 	ADCIntClear(ADC0_BASE, 3);
 	ADCSequenceDataGet(ADC0_BASE, 3,pui32ADC0Value);
@@ -365,9 +382,14 @@ void TriggerDetectISR() {
 		}
 	}
 }
+
 /****************************************************************
- * This function should be called first....
- * TODO: Complete description.
+ * This function should be called first in AcquireRun.
+ * It starts the ADC interrupt to detect the beginning of data logging
+ * which is when the voltage exceeds a changeable threshold or
+ * the accelerometer z-axis changes g by more than 0.5. The trigger
+ * to look out for depends on the user's selection. The interrupt is
+ * called every 100ms.
  ****************************************************************/
 void AcquireInit(tuiConfig* p_uiConfig) {
 	//
@@ -376,18 +398,14 @@ void AcquireInit(tuiConfig* p_uiConfig) {
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
 
 	//
-	// For this example ADC0 is used with AIN0 on port E7.
-	// The actual port and pins used may be different on your part, consult
-	// the data sheet for more information.  GPIO port E needs to be enabled
-	// so these pins can be used.
-	// TODO: change this to whichever GPIO port you are using.
+	// GPIO port E needs to be enabled
+	// so the GPIO pins for data input can be used.
 	//
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
 
 	//
 	// Select the analog ADC function for these pins.
-	// Consult the data sheet to see which functions are allocated per pin.
-	// TODO: change this to select the port/pin you are using.
+	// Accelerometer z-axis is on PE6 and AIN0 is on PE3
 	//
 	if (p_uiConfig->channelOpt == ACCEL) {
 		GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_6);
@@ -407,13 +425,23 @@ void AcquireInit(tuiConfig* p_uiConfig) {
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
 	HWREG(GPIO_PORTB_BASE + GPIO_O_AMSEL) |= GPIO_PIN_6;
 	//
-	// Enable sample sequence 3 with a processor signal trigger.  Sequence 3
+	// Enable sample sequence 3 with a timer trigger.  Sequence 3
 	// will do a single sample when the processor sends a signal to start the
 	// conversion.  Each ADC module has 4 programmable sequences, sequence 0
-	// to sequence 3.  This example is arbitrarily using sequence 3.
+	// to sequence 3.
 	//
 	ADCSequenceConfigure(ADC0_BASE, 3, ADC_TRIGGER_TIMER, 3);
+	// Register the interupt called after ADC conversion.
 	ADCIntRegister(ADC0_BASE, 3, TriggerDetectISR);
+	/*
+	 * Select the ADC channel for the specific GPIO pin to be used.
+	 */
+	uint32_t config = 0;
+	if (p_uiConfig->channelOpt == ACCEL) {
+		config = ADC_CTL_CH21;
+	} else if (p_uiConfig->channelOpt == VOLTS) {
+		config = ADC_CTL_CH0;
+	}
 	//
 	// Configure step 0 on sequence 3.  Sample channel 0 (ADC_CTL_CH0) in
 	// single-ended mode (default) and configure the interrupt flag
@@ -424,12 +452,6 @@ void AcquireInit(tuiConfig* p_uiConfig) {
 	// conversion using sequence 3 we will only configure step 0.  For more
 	// information on the ADC sequences and steps, reference the datasheet.
 	//
-	uint32_t config = 0;
-	if (p_uiConfig->channelOpt == ACCEL) {
-		config = ADC_CTL_CH21;
-	} else if (p_uiConfig->channelOpt == VOLTS) {
-		config = ADC_CTL_CH0;
-	}
 
 	ADCSequenceStepConfigure(ADC0_BASE, 3, 0, config |ADC_CTL_IE|
 			ADC_CTL_END);
