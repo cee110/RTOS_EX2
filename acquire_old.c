@@ -271,7 +271,7 @@ configChannel(tuiConfig* p_uiConfig) {
  * breaks on user input.
  ***************************************************************/
 void
-AcquireRun(tContext* pContext, tuiConfig* p_uiConfig) {
+AcquireMain(tContext* pContext, tuiConfig* p_uiConfig) {
 	configChannel(p_uiConfig);
 //	UARTprintf("Acquire run check!");
 	//Debug!

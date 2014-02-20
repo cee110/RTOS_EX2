@@ -275,7 +275,7 @@ main(void)
 		/* vProcessSBoxButton should be called regularly */
 		vPollSBoxButton(&sDisplayContext,&uiConfig, &uiState); 					/* poll keys, changing SBoxes if needed */
 		if (uiState == logging) {
-			AcquireRun(&sDisplayContext, &uiConfig);
+			AcquireMain(&sDisplayContext, &uiConfig);
 		}
 
 	}
