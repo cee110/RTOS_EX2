@@ -63,7 +63,7 @@ uint32_t datapoints[3] = {MAX_NUM,0,0};
  ***************************************************************/
 volatile int p_processingPtr = 0;
 
-
+static uint32_t pui32ADC0Value[8];
 /************************************************************
  * Reads the ADC buffer to compute the min, max and ave data points.
  * The function always reads up to the written part of the buffer
@@ -130,9 +130,20 @@ uint32_t GetSequence(tuiConfig* p_uiConfig){
  ***************************************************************/
 void GetSampleISR() {
 	// Reset pointer on new sample.
-	ADCIntClear(ADC0_BASE, 3);
+	char str[5];
+	ADCIntClear(ADC0_BASE, sequence);
+	ADCSequenceDataGet(ADC0_BASE, sequence,pui32ADC0Value);
+	usprintf(str, "%d", pui32ADC0Value[0]);
 	UARTprintf("ISR\r");
-	ADCProcessorTrigger(ADC0_BASE, 3);
+	UARTprintf(str);
+	UARTprintf("\r");
+	if (sequence == 0) {
+		usprintf(str, "%d", pui32ADC0Value[7]);
+		UARTprintf("WHAT: ");
+		UARTprintf(str);
+		UARTprintf("\r");
+	}
+	ADCProcessorTrigger(ADC0_BASE, sequence);
 }
 /***************************************************************
  * Gets the Actual Frequency Equivalent of value
@@ -222,8 +233,9 @@ configChannel(tuiConfig* p_uiConfig) {
 	    // conversion.  Each ADC module has 4 programmable sequences, sequence 0
 	    // to sequence 3.  This example is arbitrarily using sequence 3.
 	    //
-	    ADCSequenceConfigure(ADC0_BASE, 3, ADC_TRIGGER_PROCESSOR, 3);
-	    ADCIntRegister(ADC0_BASE, 3, GetSampleISR);
+	    sequence = GetSequence(p_uiConfig);
+	    ADCSequenceConfigure(ADC0_BASE, sequence, ADC_TRIGGER_PROCESSOR, 3);
+	    ADCIntRegister(ADC0_BASE, sequence, GetSampleISR);
 	    //
 	    // Configure step 0 on sequence 3.  Sample channel 0 (ADC_CTL_CH0) in
 	    // single-ended mode (default) and configure the interrupt flag
@@ -234,27 +246,34 @@ configChannel(tuiConfig* p_uiConfig) {
 	    // conversion using sequence 3 we will only configure step 0.  For more
 	    // information on the ADC sequences and steps, reference the datasheet.
 	    //
-	    uint32_t channel = 0;
+	    uint32_t config = 0;
 	    if (p_uiConfig->channelOpt == ACCEL) {
-			channel = ADC_CTL_CH21;
+			config = ADC_CTL_CH21;
 		} else if (p_uiConfig->channelOpt == VOLTS) {
-			channel = ADC_CTL_CH0;
+			config = ADC_CTL_CH0;
 		}
-	    ADCSequenceStepConfigure(ADC0_BASE, 3, 0, channel | ADC_CTL_IE |
-	                             ADC_CTL_END);
+	    steplen = (sequence == 0)? 8:1;
+	    for (int step = 0; step < steplen; step++) {
+			if (step == steplen-1)	{
+				config |= (ADC_CTL_IE | ADC_CTL_END);
+			}
+			ADCSequenceStepConfigure(ADC0_BASE, sequence, step, config);
+		}
+//	    ADCSequenceStepConfigure(ADC0_BASE, sequence, 0, config | ADC_CTL_IE |
+//	                             ADC_CTL_END);
 
 	    //
 	    // Since sample sequence 3 is now configured, it must be enabled.
 	    //
-	    ADCSequenceEnable(ADC0_BASE, 3);
+	    ADCSequenceEnable(ADC0_BASE, sequence);
 
 	    //
 	    // Clear the interrupt status flag.  This is done to make sure the
 	    // interrupt flag is cleared before we sample.
 	    //
-	    ADCIntClear(ADC0_BASE, 3);
+	    ADCIntClear(ADC0_BASE, sequence);
 	    // Enable the interrupt after calibration.
-		ADCIntEnable(ADC0_BASE, 3);
+		ADCIntEnable(ADC0_BASE, sequence);
 }
 # define VREF 3
 int ReadAccel(uint32_t value) {
@@ -273,9 +292,8 @@ AcquireRun(tContext* pContext, tuiConfig* p_uiConfig) {
     // uses sequence 3 which has a FIFO depth of 1.  If another sequence
     // was used with a deeper FIFO, then the array size must be changed.
     //
-    static uint32_t pui32ADC0Value[1];
 	configChannel(p_uiConfig);
-	ADCProcessorTrigger(ADC0_BASE, 3);
+	ADCProcessorTrigger(ADC0_BASE, sequence);
 	// Sample AIN0 forever.  Display the value on the console.
 	//
 	while(1)
