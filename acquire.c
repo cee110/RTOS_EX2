@@ -63,7 +63,7 @@ uint32_t datapoints[3] = {MAX_NUM,0,0};
  ***************************************************************/
 volatile int p_processingPtr = 0;
 
-static uint32_t pui32ADC0Value[8];
+//static uint32_t pui32ADC0Value[8];
 /************************************************************
  * Reads the ADC buffer to compute the min, max and ave data points.
  * The function always reads up to the written part of the buffer
@@ -130,20 +130,20 @@ uint32_t GetSequence(tuiConfig* p_uiConfig){
  ***************************************************************/
 void GetSampleISR() {
 	// Reset pointer on new sample.
-	char str[5];
+//	char str[5];
 	ADCIntClear(ADC0_BASE, sequence);
-	ADCSequenceDataGet(ADC0_BASE, sequence,pui32ADC0Value);
-	usprintf(str, "%d", pui32ADC0Value[0]);
+//	ADCSequenceDataGet(ADC0_BASE, sequence,pui32ADC0Value);
+//	usprintf(str, "%d", pui32ADC0Value[0]);
 	UARTprintf("ISR\r");
-	UARTprintf(str);
-	UARTprintf("\r");
-	if (sequence == 0) {
-		usprintf(str, "%d", pui32ADC0Value[7]);
-		UARTprintf("WHAT: ");
-		UARTprintf(str);
-		UARTprintf("\r");
-	}
-	ADCProcessorTrigger(ADC0_BASE, sequence);
+//	UARTprintf(str);
+//	UARTprintf("\r");
+//	if (sequence == 0) {
+//		usprintf(str, "%d", pui32ADC0Value[7]);
+//		UARTprintf("WHAT: ");
+//		UARTprintf(str);
+//		UARTprintf("\r");
+//	}
+//	ADCProcessorTrigger(ADC0_BASE, sequence);
 }
 /***************************************************************
  * Gets the Actual Frequency Equivalent of value
@@ -160,6 +160,7 @@ GetPeriod(uint32_t freq){
 // ***************************************************************
 void
 ConfigTimer0(tuiConfig* p_uiConfig) {
+
 	// Enable the timer peripherals.
 	//
 	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
@@ -168,10 +169,16 @@ ConfigTimer0(tuiConfig* p_uiConfig) {
 	//
 	ROM_TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC_UP);
 	ROM_TimerLoadSet(TIMER0_BASE, TIMER_A, GetPeriod(p_uiConfig->freq));
-//	// Set the ADC event trigger.
-	TimerADCEventSet(TIMER0_BASE, TIMER_ADC_TIMEOUT_A);
-	// Configure Timer0 to trigger the ADC conversion.
+	//
+	// Setup the interrupts for the timer timeouts.
+	//
+//	IntEnable(INT_TIMER0A);
+//	TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+//	TimerADCEventSet(TIMER0_BASE);
 	TimerControlTrigger(TIMER0_BASE, TIMER_A, true);
+	//
+	// Enable the timer0.
+	//
 	ROM_TimerEnable(TIMER0_BASE, TIMER_A);
 }
 /***************************************************************
@@ -234,7 +241,7 @@ configChannel(tuiConfig* p_uiConfig) {
 	    // to sequence 3.  This example is arbitrarily using sequence 3.
 	    //
 	    sequence = GetSequence(p_uiConfig);
-	    ADCSequenceConfigure(ADC0_BASE, sequence, ADC_TRIGGER_PROCESSOR, 3);
+	    ADCSequenceConfigure(ADC0_BASE, sequence, ADC_TRIGGER_TIMER, 3);
 	    ADCIntRegister(ADC0_BASE, sequence, GetSampleISR);
 	    //
 	    // Configure step 0 on sequence 3.  Sample channel 0 (ADC_CTL_CH0) in
@@ -274,6 +281,7 @@ configChannel(tuiConfig* p_uiConfig) {
 	    ADCIntClear(ADC0_BASE, sequence);
 	    // Enable the interrupt after calibration.
 		ADCIntEnable(ADC0_BASE, sequence);
+		ConfigTimer0(p_uiConfig);
 }
 # define VREF 3
 int ReadAccel(uint32_t value) {
@@ -293,7 +301,7 @@ AcquireRun(tContext* pContext, tuiConfig* p_uiConfig) {
     // was used with a deeper FIFO, then the array size must be changed.
     //
 	configChannel(p_uiConfig);
-	ADCProcessorTrigger(ADC0_BASE, sequence);
+//	ADCProcessorTrigger(ADC0_BASE, sequence);
 	// Sample AIN0 forever.  Display the value on the console.
 	//
 	while(1)
