@@ -41,7 +41,10 @@
 #include "inc/hw_nvic.h"
 #include "inc/hw_types.h"
 #include "inc/hw_ints.h"
-#include "quickselect.h"
+#include "drivers/buttons.h"
+#include "exercise2.h"
+#include "uicontrol.h"
+#include "acquire.h"
 //*****************************************************************************
 //
 //! \addtogroup example_list
@@ -93,40 +96,22 @@ uint32_t g_ui32Flags;
 //
 //*****************************************************************************
 volatile uint32_t current_time = 0;
-volatile uint32_t prevtime = 0;
-//*****************************************************************************
-//
-// Stores the values to be measure. In general, measurements[0] stores minimum
-// measurements[1], maximum; measurements[2] = average;
-// measurements[3] = interrupt handler entry count
-//
-//*****************************************************************************
-volatile uint32_t measurements[4];
-//*****************************************************************************
-//
-// Stores the entry previous time to interrupt handler
-//
-//*****************************************************************************
-volatile uint32_t prev_entrytime = 0;
-//*****************************************************************************
-//
-// Period of timer0
-//
-//*****************************************************************************
-const uint32_t timer0_period = 1150; // 50E6 * 0.000023
-//*****************************************************************************
-//
-// Period of timer 1
-//
-//*****************************************************************************
-const uint32_t timer1_period = 5000; // 50E6 * 0.0001
+
 //*****************************************************************************
 //
 // Period of SysTick Timer.
 //
 //*****************************************************************************
 const uint32_t systick_period = 6550;// 50E6 * 0.000131
-
+/******************************************************************************
+ * Defines the current state of the application at any time
+ ******************************************************************************/
+static uiState_t uiState = idle;
+/***********************************************
+ *
+ * Stores User Configuration
+ ************************************************/
+static tuiConfig uiConfig = {10,1, ACCEL};
 //tContext sContext;
 //*****************************************************************************
 //
@@ -213,70 +198,6 @@ Timer1IntHandler(void)
     HWREGBITW(&g_ui32Flags, 1) ^= 1;
 
 }
-//*****************************************************************************
-//
-// Sets up timer0 to count up periodically with a period of 23us.
-// Its priority is 1. 0 is reserved for exception handling.
-//
-//*****************************************************************************
-void
-ConfigTimer0() {
-	//Register Interrupt Handlers
-	TimerIntRegister(TIMER0_BASE, TIMER_A, Timer0IntHandler);
-	// Set the priority of the Timers
-	// Set Timer0 as level 1 priority
-	IntPrioritySet(INT_TIMER0A, 0x20);
-
-	// Enable the timer peripherals.
-	//
-	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
-	//
-	// Configure the two 32-bit periodic timers.
-	//
-	ROM_TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC_UP);
-	ROM_TimerLoadSet(TIMER0_BASE, TIMER_A, timer0_period);
-	//
-	// Setup the interrupts for the timer timeouts.
-	//
-	ROM_IntEnable(INT_TIMER0A);
-	ROM_TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
-	//
-	// Enable the timer0.
-	//
-	ROM_TimerEnable(TIMER0_BASE, TIMER_A);
-}
-
-//*****************************************************************************
-//
-// Sets up timer1 to count up periodically with a period of 131us.
-// Its priority is 2. 0 is reserved for exception handling.
-//
-//*****************************************************************************
-void
-ConfigTimer1() {
-	//Register Interrupt Handlers
-	TimerIntRegister(TIMER1_BASE, TIMER_A, Timer1IntHandler);
-	// Set the priority of the Timers
-	// Set Timer1 as level 2 priority
-	IntPrioritySet(INT_TIMER1A, 0x40);
-	// Enable the timer peripherals.
-	//
-	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
-	//
-	// Configure the two 32-bit periodic timers.
-	//
-	ROM_TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC_UP);
-	ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, timer1_period);
-	//
-	// Setup the interrupts for the timer timeouts.
-	//;
-	ROM_IntEnable(INT_TIMER1A);
-	ROM_TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
-	//
-	// Enable the timer1.
-	//
-	ROM_TimerEnable(TIMER1_BASE, TIMER_A);
-}
 
 //*****************************************************************************
 //
@@ -315,6 +236,7 @@ ConfigSysTick() {
 	SysTickEnable();
 }
 
+
 //*****************************************************************************
 //
 // Print "exercise1 World!" to the display.
@@ -323,7 +245,8 @@ ConfigSysTick() {
 int
 main(void)
 {
-
+	// Display Context
+	static tContext sDisplayContext;
     //
     // Set the clocking to run directly from the crystal.
     //
@@ -335,5 +258,26 @@ main(void)
     //
     ConfigureUART();
 
-    vTestSBoxes();
+    CFAL96x64x16Init(); /* initialise controller */
+	ButtonsInit(); 		/* initialise buttons */
+
+	//
+	// Initialize the graphics context.
+	//
+	GrContextInit(&sDisplayContext, &g_sCFAL96x64x16);
+
+	// Initialise UI State
+	uiState = idle;
+	// Setup Display.
+	vInitUI(&sDisplayContext);
+
+	while (1) {
+		/* vProcessSBoxButton should be called regularly */
+		vPollSBoxButton(&sDisplayContext,&uiConfig, &uiState); 					/* poll keys, changing SBoxes if needed */
+		if (uiState == logging) {
+			AcquireRun(&sDisplayContext, &uiConfig);
+		}
+
+	}
+
 }

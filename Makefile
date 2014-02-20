@@ -109,12 +109,13 @@ ${COMPILER}:
 # Rules for building the exercise2.
 #
 ${COMPILER}/exercise2.axf: ${COMPILER}/cfal96x64x16.o
-${COMPILER}/exercise2.axf: ${COMPILER}/exercise2.o
 ${COMPILER}/exercise2.axf: ${COMPILER}/startup_${COMPILER}.o
 ${COMPILER}/exercise2.axf: ${COMPILER}/uartstdio.o
 ${COMPILER}/exercise2.axf: ${COMPILER}/ustdlib.o
 ${COMPILER}/exercise2.axf: ${COMPILER}/buttons.o
-${COMPILER}/exercise2.axf: ${COMPILER}/quickselect.o
+${COMPILER}/exercise2.axf: ${COMPILER}/uicontrol.o
+${COMPILER}/exercise2.axf: ${COMPILER}/acquire.o
+${COMPILER}/exercise2.axf: ${COMPILER}/exercise2.o
 ${COMPILER}/exercise2.axf: ${ROOT}/grlib/${COMPILER}/libgr.a
 ${COMPILER}/exercise2.axf: ${ROOT}/driverlib/${COMPILER}/libdriver.a
 ${COMPILER}/exercise2.axf: exercise2.ld
