@@ -73,7 +73,13 @@ volatile uint32_t steplen;
  * min = datapoint[0], max = datapoint[1], ave = datapoint[2]
  *************************************************************/
 #define MAX_NUM 999999999
-uint32_t datapoints[3] = {MAX_NUM,0,0};
+typedef struct tdata {
+	uint32_t max;
+	uint32_t min;
+	uint32_t ave;
+}tdatapoint;
+
+volatile tdatapoint datapoints = {MAX_NUM,0,0};
 
 /****************************************************************
  * Pointer to NEXT line of ADC buffer for processing.
@@ -83,6 +89,29 @@ volatile uint32_t* p_processingPtr;
  * Stores the user's options.
  ****************************************************************/
 volatile tuiConfig* puiConfig;
+/****************************************************************
+ * Initialise the Graphics configuration
+ ****************************************************************/
+volatile tguiConfig guiConfig[] = {
+		{250, -250, ACCEL },				// Accelerometer unit is g*100
+		{200, 0, VOLTS }					// Voltage is in V*100
+};
+/****************************************************************
+ * Initialise the series configuration
+ ****************************************************************/
+volatile seriesColor series[] = {
+		{MAX, ClrRed},
+		{MIN, ClrGreen},
+		{AVE, ClrWhite}
+};
+
+/****************************************************************
+ * Plots one sample on OLED
+ *****************************************************************/
+void
+PlotData(){
+
+}
 /************************************************************
  * Reads the ADC buffer to compute the min, max and ave data points.
  * The function always reads up to the written part of the buffer
@@ -110,25 +139,25 @@ computeSample(tuiConfig* p_uiConfig) {
 //	UARTprintf(debugChar);
 //	UARTprintf("\r");
 	// Reset data points;
-	datapoints[0] = MAX_NUM;
-	datapoints[1] = datapoints[2] = 0;
+	datapoints.min = MAX_NUM;
+	datapoints.max = datapoints.ave = 0;
 	// Compute Min, Max, Ave
 	for (int i = 0; i < p_uiConfig->sample_size; i++) {
-		if (p_processingPtr[0] < datapoints[0]) { // Compute Min
-			datapoints[0] = p_processingPtr[0];
+		if (p_processingPtr[0] < datapoints.min) { // Compute Min
+			datapoints.min = p_processingPtr[0];
 		}
-		if (p_processingPtr[0] > datapoints[1]) { // Compute Max
-			datapoints[1] = p_processingPtr[0];
+		if (p_processingPtr[0] > datapoints.max) { // Compute Max
+			datapoints.max = p_processingPtr[0];
 		}
-		datapoints[2]+=p_processingPtr[0];
+		datapoints.ave+=p_processingPtr[0];
 		p_processingPtr++;
 	}
-	datapoints[2] /= p_uiConfig->sample_size;
+	datapoints.ave /= p_uiConfig->sample_size;
 	// Check for wrap around
 	if (p_processingPtr == puiADC0StopPtr) {
 		p_processingPtr = puiADC0StartPtr;
 	}
-	usprintf(debugChar, "%d", datapoints[2]);
+	usprintf(debugChar, "%d", datapoints.ave);
 	UARTprintf(debugChar);
 	UARTprintf("\r");
 }
