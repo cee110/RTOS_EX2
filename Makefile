@@ -69,8 +69,8 @@ asmgcc:
 #
 # The default rule, which causes the exercise2 example to be built.
 #
-asmsystick: 
-	 gcc -v ${GCCPATH} -I. -g -c -S -Wa,-alh ${ROOT}/driverlib/systick.c
+asmacquire: 
+	 gcc -v ${GCCPATH} -std=c99  -g -c -S -Wa,-alh acquire.c
 
 #
 # The default rule, which causes the exercise2 example to be built.

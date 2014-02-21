@@ -78,10 +78,12 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 	</storageModule>
+	<storageModule moduleId="refreshScope"/>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
 		<buildTargets>
 			<target name="all" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>cs-make</buildCommand>
+				<buildArguments/>
 				<buildTarget>all</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
@@ -89,6 +91,7 @@
 			</target>
 			<target name="flash" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>cs-make</buildCommand>
+				<buildArguments/>
 				<buildTarget>flash</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
@@ -96,7 +99,6 @@
 			</target>
 			<target name="asmobj" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>cs-make</buildCommand>
-				<buildArguments/>
 				<buildTarget>asmobj</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
@@ -104,23 +106,21 @@
 			</target>
 			<target name="asmgcc" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>cs-make</buildCommand>
-				<buildArguments/>
 				<buildTarget>asmgcc</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
 			</target>
-			<target name="asmsystick" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+			<target name="asmacquire" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>cs-make</buildCommand>
 				<buildArguments/>
-				<buildTarget>asmsystick</buildTarget>
+				<buildTarget>asmacquire</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
 			</target>
 			<target name="asm_uart" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>cs-make</buildCommand>
-				<buildArguments/>
 				<buildTarget>asm_uart</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
