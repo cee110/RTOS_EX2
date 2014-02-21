@@ -139,6 +139,7 @@ uint32_t GetSequence(tuiConfig* p_uiConfig){
 	}
 }
 
+volatile uint32_t tobedelted =0;
 /***************************************************************
  * Reads the ADC buffer for a new sample. Computes Min, Max, Ave
  * and sets the sample event flag when sampling is completed.
@@ -147,9 +148,10 @@ void GetSampleISR() {
 	// Reset pointer on new sample.
 //	char str[5];
 	ADCIntClear(ADC0_BASE, sequence);
-//	ADCSequenceDataGet(ADC0_BASE, sequence,pui32ADC0Value);
+	tobedelted++;
+	ADCSequenceDataGet(ADC0_BASE, sequence,pui32ADC0Value);
 //	usprintf(str, "%d", pui32ADC0Value[0]);
-	UARTprintf("ISR\r");
+//	UARTprintf("ISR\r");
 //	UARTprintf(str);
 //	UARTprintf("\r");
 //	if (sequence == 0) {
@@ -202,11 +204,7 @@ AcquireStart(tuiConfig* p_uiConfig) {
 	//
 	// Display the setup on the console.
 	//
-	UARTprintf("ADC ->\n");
-	UARTprintf("  Type: Single Ended\n");
-	UARTprintf("  Samples: One\n");
-	UARTprintf("  Update Rate: 250ms\n");
-	UARTprintf("  Input Pin: AIN0/PE7\n\n");
+	UARTprintf("ADC Acquire Start\n");
 
 	//
 	// The ADC0 peripheral must be enabled for use.
@@ -314,11 +312,17 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 //		UARTprintf("Checkpoint?\r");
 	}
 	// If we get to here that means ADC conversion has started.
-	UARTprintf("Checkpoint!\r");
-
+	char str[5];
+	usprintf(str, "%d", GetPeriod(puiConfig->freq));
+	UARTprintf(str);
+	UARTprintf("  Checkpoint!\r");
+//	Start logging data!
 	AcquireStart(puiConfig);
 	while(1)
 	{
+		usprintf(str,"%d", tobedelted);
+		UARTprintf(str);
+		UARTprintf("/r");
 //		//
 //		// Trigger the ADC conversion.
 //		//
@@ -351,7 +355,7 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 //		// delay.  The function delay (in cycles) = 3 * parameter.  Delay
 //		// 250ms arbitrarily.
 //		//
-//		SysCtlDelay(SysCtlClockGet() / 100);
+		SysCtlDelay(SysCtlClockGet() / 100);
 	}
 
 }

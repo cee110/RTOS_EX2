@@ -218,7 +218,7 @@ ConfigSysTick() {
 	//
 	// Set up the period for the SysTick timer(Resolution 1us).
 	//
-	SysTickPeriodSet(systick_period);
+	SysTickPeriodSet(SysCtlClockGet()/100);
 
 	//
 	// Enable interrupts to the processor.
