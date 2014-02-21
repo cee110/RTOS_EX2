@@ -93,35 +93,44 @@ void
 computeSample(tuiConfig* p_uiConfig) {
 	// Read the ADC buffer pointer in a critical section.
 	// Loops until buffer has enough data.
+	UARTprintf("Sample\r");
+
+	uint32_t * pointer;
 	int size = 0;
+	char debugChar[10];
 	do {
 		ROM_IntMasterDisable();
-		uint32_t * pointer = puiADC0StartPtr;
+		pointer = puiADC0StartPtr;
 		ROM_IntMasterEnable();
-		size = pointer - puiADC0Buffer;
-		size /= 4;
+		size = pointer - p_processingPtr;
 		// Don't poll too fast to starve the ISR with the critical section.
 		SysCtlDelay(1000);
 	} while(size < p_uiConfig->sample_size);
-
+//	usprintf(debugChar, "%d", size);
+//	UARTprintf(debugChar);
+//	UARTprintf("\r");
 	// Reset data points;
 	datapoints[0] = MAX_NUM;
 	datapoints[1] = datapoints[2] = 0;
 	// Compute Min, Max, Ave
-	for (int i = p_processingPtr; i < p_uiConfig->sample_size; i++) {
-		if (puiADC0Buffer[i] < datapoints[0]) { // Compute Min
-			datapoints[0] = puiADC0Buffer[i];
+	for (int i = 0; i < p_uiConfig->sample_size; i++) {
+		if (p_processingPtr[0] < datapoints[0]) { // Compute Min
+			datapoints[0] = p_processingPtr[0];
 		}
-		if (puiADC0Buffer[i] > datapoints[1]) { // Compute Max
-			datapoints[1] = puiADC0Buffer[i];
+		if (p_processingPtr[0] > datapoints[1]) { // Compute Max
+			datapoints[1] = p_processingPtr[0];
 		}
-		datapoints[2]+=puiADC0Buffer[i];
+		datapoints[2]+=p_processingPtr[0];
+		p_processingPtr++;
 	}
 	datapoints[2] /= p_uiConfig->sample_size;
-	p_processingPtr += p_uiConfig->sample_size;
 	// Check for wrap around
-	if (p_processingPtr == buffersize)
-		p_processingPtr = 0;
+	if (p_processingPtr == puiADC0StopPtr) {
+		p_processingPtr = puiADC0StartPtr;
+	}
+	usprintf(debugChar, "%d", datapoints[2]);
+	UARTprintf(debugChar);
+	UARTprintf("\r");
 }
 /************************************************************
  * Gets the appropriate sequence for the ADC.
@@ -343,12 +352,7 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 			// Stop logging
 //			break;
 		}
-		ROM_IntMasterDisable();
-		usprintf(str,"%d",puiADC0StartPtr);
-		ROM_IntMasterEnable();
-		UARTprintf(str);
-		UARTprintf("\r");
-
+		computeSample(puiConfig);
 //		//
 //		// Trigger the ADC conversion.
 //		//
