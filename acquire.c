@@ -45,9 +45,18 @@ uint32_t p_uiADCBuffer[MAX_SAMPLES*MAX_SAMPLE_SIZE];
  ***************************************************************/
 volatile int p_uiADCBufferPtr = 0;
 /****************************************************************
- * Sample Event Flag
+ * Acquire Event Flags.
+ * Bit 0: For Normal Data logging Start Trigger.
+ * 0 means trigger has not been detected.
+ * 1 means trigger has been detected.
+ *
+ * Bit 1: ....
+ * 0 means ....
+ * 1 means ....
  ***************************************************************/
-//volatile bool sampleflag = 0;
+volatile uint8_t eventflags = 0;
+
+#define ADC_TRIG_CTL 0x01
 
 volatile uint32_t buffersize;
 volatile uint32_t sequence;
@@ -299,9 +308,15 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
     //
 	puiConfig = puiConfig_t;
 	AcquireInit(puiConfig);
-//	ADCProcessorTrigger(ADC0_BASE, sequence);
-	// Sample AIN0 forever.  Display the value on the console.
-	//
+
+	// Wait for trigger event
+	while((!eventflags) & ADC_TRIG_CTL){
+//		UARTprintf("Checkpoint?\r");
+	}
+	// If we get to here that means ADC conversion has started.
+	UARTprintf("Checkpoint!\r");
+
+	AcquireStart(puiConfig);
 	while(1)
 	{
 //		//
@@ -340,7 +355,20 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 	}
 
 }
-
+/*****************************************************************
+ * Stops the trigger detection functionality.
+ *****************************************************************/
+void
+StopDetection() {
+	// Disable the interrupt.
+	ADCIntDisable(ADC0_BASE, 3);
+	// Clear the any pending Interrupt
+	ADCIntClear(ADC0_BASE, 3);
+	// First remove the ISR.
+	ADCIntUnregister(ADC0_BASE,3);
+	// Stop the timer from triggering ADC conversion.
+	TimerControlTrigger(TIMER0_BASE, TIMER_A, false);
+}
 /****************************************************************
  * Defines the threshold voltage for the volts trigger detection.
  ****************************************************************/
@@ -373,31 +401,21 @@ void TriggerDetectISR() {
 			int curr_value = ReadAccel(pui32ADC0Value[0]);
 			if (abs(curr_value - prev_value) > 50) {
 				UARTprintf("Accel!\r");
+				// Set the event flag
+				eventflags|= ADC_TRIG_CTL;
+				StopDetection();
 			}
 			prev_value = curr_value;
 		}
 	} else if (puiConfig->channelOpt == VOLTS){
 		if (pui32ADC0Value[0] > VTHRES) {
 			UARTprintf("Volts!\r");
+			eventflags|= ADC_TRIG_CTL;
+			StopDetection();
 		}
 	}
 }
-/*****************************************************************
- * Stops the trigger detection functionality.
- *****************************************************************/
-void
-StopDetection() {
-	// Disable the interrupt after calibration.
-	ADCIntDisable(ADC0_BASE, 3);
-	// Disable the interrupt after calibration.
-	ADCIntDisable(ADC0_BASE, 3);
-	// Clear the any pending Interrupt
-	ADCIntClear(ADC0_BASE, 3);
-	// First remove the ISR.
-	ADCIntUnregister(ADC0_BASE,3);
-	// Disable the timer to stop triggering ADC conversions
-	ROM_TimerDisable(TIMER0_BASE, TIMER_A);
-}
+
 /****************************************************************
  * This function should be called first in AcquireRun.
  * It starts the ADC interrupt to detect the beginning of data logging
@@ -407,6 +425,8 @@ StopDetection() {
  * called every 100ms.
  ****************************************************************/
 void AcquireInit(tuiConfig* p_uiConfig) {
+	// Resets the event flags
+	eventflags = 0;
 	//
 	// The ADC0 peripheral must be enabled for use.
 	//
