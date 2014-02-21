@@ -382,7 +382,22 @@ void TriggerDetectISR() {
 		}
 	}
 }
-
+/*****************************************************************
+ * Stops the trigger detection functionality.
+ *****************************************************************/
+void
+StopDetection() {
+	// Disable the interrupt after calibration.
+	ADCIntDisable(ADC0_BASE, 3);
+	// Disable the interrupt after calibration.
+	ADCIntDisable(ADC0_BASE, 3);
+	// Clear the any pending Interrupt
+	ADCIntClear(ADC0_BASE, 3);
+	// First remove the ISR.
+	ADCIntUnregister(ADC0_BASE,3);
+	// Disable the timer to stop triggering ADC conversions
+	ROM_TimerDisable(TIMER0_BASE, TIMER_A);
+}
 /****************************************************************
  * This function should be called first in AcquireRun.
  * It starts the ADC interrupt to detect the beginning of data logging
