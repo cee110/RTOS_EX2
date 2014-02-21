@@ -103,15 +103,13 @@ volatile uint32_t current_time = 0;
 //
 //*****************************************************************************
 const uint32_t systick_period = 6550;// 50E6 * 0.000131
-/******************************************************************************
- * Defines the current state of the application at any time
- ******************************************************************************/
-static uiState_t uiState = idle;
+
 /***********************************************
  *
- * Stores User Configuration
+ * Stores User Configuration.
+ * Initialise to 10Hz, 1 sample, Accelerometer channel and idle state
  ************************************************/
-static tuiConfig uiConfig = {10,1, ACCEL};
+static tuiConfig uiConfig = {10,1, ACCEL, idle};
 //tContext sContext;
 //*****************************************************************************
 //
@@ -267,14 +265,14 @@ main(void)
 	GrContextInit(&sDisplayContext, &g_sCFAL96x64x16);
 
 	// Initialise UI State
-	uiState = idle;
+	uiConfig.uiState = idle;
 	// Setup Display.
 	vInitUI(&sDisplayContext);
 
 	while (1) {
 		/* vProcessSBoxButton should be called regularly */
-		vPollSBoxButton(&sDisplayContext,&uiConfig, &uiState); 					/* poll keys, changing SBoxes if needed */
-		if (uiState == logging) {
+		vPollSBoxButton(&sDisplayContext,&uiConfig); 					/* poll keys, changing SBoxes if needed */
+		if (uiConfig.uiState == logging) {
 			AcquireMain(&sDisplayContext, &uiConfig);
 		}
 

@@ -33,6 +33,7 @@ typedef struct tsb
 	int boxid;				/* integer constant identifying SBox */
 } tSelectBox;
 
+typedef enum {idle, logging}uiState_t;
 typedef enum channel_enum{ACCEL, VOLTS} channel_enum;
 /* Option Configuration Structure to Store User's Option */
 typedef struct tsOpt
@@ -40,6 +41,7 @@ typedef struct tsOpt
 	uint32_t freq;
 	uint32_t sample_size;
 	channel_enum channelOpt;
+	uiState_t uiState;
 } tuiConfig;
 
 //extern tuiConfig uiConfig;
@@ -58,8 +60,8 @@ void WriteString(
 		int xpos, int ypos 	/* position on screen in 6*8 characters */
 		);
 extern void vPaintSBoxes(tContext *context);
-extern void processOptions(uiState_t* uiState_t, tuiConfig* p_uiConfig);
-extern void vPollSBoxButton(tContext* sContext, tuiConfig* p_uiConfig, uiState_t* p_uiState);
+extern void processOptions(tuiConfig* p_uiConfig);
+extern void vPollSBoxButton(tContext* sContext, tuiConfig* p_uiConfig);
 extern void vInitUI(tContext* sContext); // Initialises
 /*---------------------------------SBOX CREATION AND USE--------------------------*/
 /*------------------------see quickselect.c for use example-----------------------*/

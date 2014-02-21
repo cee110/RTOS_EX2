@@ -305,24 +305,27 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
     // was used with a deeper FIFO, then the array size must be changed.
     //
 	puiConfig = puiConfig_t;
-	AcquireInit(puiConfig);
+//	AcquireInit(puiConfig);
 
 	// Wait for trigger event
-	while((!eventflags) & ADC_TRIG_CTL){
-//		UARTprintf("Checkpoint?\r");
-	}
+//	while((!eventflags) & ADC_TRIG_CTL){
+////		UARTprintf("Checkpoint?\r");
+//	}
 	// If we get to here that means ADC conversion has started.
 	char str[5];
-	usprintf(str, "%d", GetPeriod(puiConfig->freq));
-	UARTprintf(str);
 	UARTprintf("  Checkpoint!\r");
 //	Start logging data!
 	AcquireStart(puiConfig);
 	while(1)
 	{
+		vPollSBoxButton(pContext, puiConfig);
+		if (puiConfig->uiState == idle) {
+			// Stop logging
+//			break;
+		}
 		usprintf(str,"%d", tobedelted);
 		UARTprintf(str);
-		UARTprintf("/r");
+		UARTprintf("\r");
 //		//
 //		// Trigger the ADC conversion.
 //		//
@@ -364,14 +367,18 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
  *****************************************************************/
 void
 StopDetection() {
-	// Disable the interrupt.
-	ADCIntDisable(ADC0_BASE, 3);
-	// Clear the any pending Interrupt
-	ADCIntClear(ADC0_BASE, 3);
-	// First remove the ISR.
-	ADCIntUnregister(ADC0_BASE,3);
 	// Stop the timer from triggering ADC conversion.
 	TimerControlTrigger(TIMER0_BASE, TIMER_A, false);
+	// Disable the interrupt.
+	ADCIntDisable(ADC0_BASE, 3);
+	// First remove the ISR.
+	ADCIntUnregister(ADC0_BASE,3);
+	// Disable the sequence.
+	ADCSequenceDisable(ADC0_BASE, 3);
+	//
+	// The ADC0 peripheral is disabled till use.
+	//
+//	SysCtlPeripheralDisable(SYSCTL_PERIPH_ADC0);
 }
 /****************************************************************
  * Defines the threshold voltage for the volts trigger detection.
@@ -396,6 +403,7 @@ volatile int prev_value = 0;
  *****************************************************************/
 void TriggerDetectISR() {
 	ADCIntClear(ADC0_BASE, 3);
+	tobedelted++;
 	ADCSequenceDataGet(ADC0_BASE, 3,pui32ADC0Value);
 	if (puiConfig->channelOpt == ACCEL) {
 		if (first) {

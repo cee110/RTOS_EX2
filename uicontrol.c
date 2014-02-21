@@ -190,7 +190,7 @@ void vPaintSBoxes(tContext *context)
 }
 
 void
-processOptions(uiState_t* uiState_t, tuiConfig* p_uiConfig) {
+processOptions(tuiConfig* p_uiConfig) {
 	if (pCurrentSBox == &pCurrentSBoxDefinitions[0])
 		p_uiConfig->freq = pCurrentSBox->labels->value;
 	if (pCurrentSBox == &pCurrentSBoxDefinitions[1])
@@ -199,40 +199,48 @@ processOptions(uiState_t* uiState_t, tuiConfig* p_uiConfig) {
 		p_uiConfig->channelOpt = pCurrentSBox->labels->value;
 	if (pCurrentSBox ==  &pCurrentSBoxDefinitions[3]){
 		//		Start Logging
-		*uiState_t = logging;
+		p_uiConfig->uiState = logging;
 	}
 }
 /******************************************************************************
  * Controls all the button functions across the app.
  * No other function should do this.
  ******************************************************************************/
-void vPollSBoxButton(tContext* sContext, tuiConfig* p_uiConfig, uiState_t* p_uiState)
+void vPollSBoxButton(tContext* sContext, tuiConfig* p_uiConfig)
 {
 	uint8_t buttons, buttons_raw;
 	ButtonsPoll(&buttons, &buttons_raw);
 	buttons = buttons & buttons_raw;
-	if (buttons & UP_BUTTON){
-		pCurrentSBox = pCurrentSBox->bprev;
-		UARTprintf("UP \n");
+	if (p_uiConfig->uiState == idle) {
+		if (buttons & UP_BUTTON){
+			pCurrentSBox = pCurrentSBox->bprev;
+			UARTprintf("UP \n");
+		}
+		if (buttons & DOWN_BUTTON){
+			pCurrentSBox = pCurrentSBox->bnext;
+			UARTprintf("DOWN \n");
+		}
+		if (buttons & LEFT_BUTTON){
+			pCurrentSBox->labels = pCurrentSBox->labels->lprev;
+			UARTprintf("LEFT \n");
+		}
+		if (buttons & RIGHT_BUTTON) {
+			pCurrentSBox->labels = pCurrentSBox->labels->lnext;
+			UARTprintf("RIGHT \n");
+		}
+		if (buttons & SELECT_BUTTON) {
+			processOptions(p_uiConfig);
+			UARTprintf("SELECT BUTTON \n");
+		}
+		if (buttons & (UP_BUTTON | DOWN_BUTTON | LEFT_BUTTON | RIGHT_BUTTON)) {
+			vPaintSBoxes(sContext);
+		}
 	}
-	if (buttons & DOWN_BUTTON){
-		pCurrentSBox = pCurrentSBox->bnext;
-		UARTprintf("DOWN \n");
-	}
-	if (buttons & LEFT_BUTTON){
-		pCurrentSBox->labels = pCurrentSBox->labels->lprev;
-		UARTprintf("LEFT \n");
-	}
-	if (buttons & RIGHT_BUTTON) {
-		pCurrentSBox->labels = pCurrentSBox->labels->lnext;
-		UARTprintf("RIGHT \n");
-	}
-	if (buttons & SELECT_BUTTON) {
-		processOptions(p_uiState, p_uiConfig);
-		UARTprintf("SELECT BUTTON \n");
-	}
-	if (buttons & (UP_BUTTON | DOWN_BUTTON | LEFT_BUTTON | RIGHT_BUTTON)) {
-		vPaintSBoxes(sContext);
+	else if(p_uiConfig->uiState == logging) {
+		if (buttons & (UP_BUTTON | DOWN_BUTTON | LEFT_BUTTON | RIGHT_BUTTON)) {
+			p_uiConfig->uiState = idle;
+			vPaintSBoxes(sContext);
+		}
 	}
 }
 

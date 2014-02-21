@@ -8,7 +8,7 @@
 #ifndef EXERCISE2_H_
 #define EXERCISE2_H_
 
-typedef enum {idle, logging}uiState_t;
+
 //extern static uiStateEnum uiState;
 
 
