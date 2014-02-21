@@ -38,12 +38,12 @@
 /****************************************************************
  * Buffer to store Acquisition Data
  ***************************************************************/
-uint32_t p_uiADCBuffer[MAX_SAMPLES*MAX_SAMPLE_SIZE];
+uint32_t puiADC0Buffer[MAX_SAMPLES*MAX_SAMPLE_SIZE];
 
 /****************************************************************
  * Pointer to ADC buffer.
  ***************************************************************/
-volatile int p_uiADCBufferPtr = 0;
+volatile int puiADC0BufferPtr = 0;
 /****************************************************************
  * Acquire Event Flags.
  * Bit 0: For Normal Data logging Start Trigger.
@@ -67,14 +67,11 @@ volatile uint32_t steplen;
  *************************************************************/
 #define MAX_NUM 999999999
 uint32_t datapoints[3] = {MAX_NUM,0,0};
+
 /****************************************************************
  * Pointer to NEXT line of ADC buffer for processing.
  ***************************************************************/
 volatile int p_processingPtr = 0;
-/****************************************************************
- * Buffer to store the read ADC values.
- ****************************************************************/
-volatile uint32_t pui32ADC0Value[8];
 /****************************************************************
  * Stores the user's options.
  ****************************************************************/
@@ -91,7 +88,7 @@ computeSample(tuiConfig* p_uiConfig) {
 	int size = 0;
 	do {
 		ROM_IntMasterDisable();
-		int pointer = p_uiADCBufferPtr;
+		int pointer = puiADC0BufferPtr;
 		ROM_IntMasterEnable();
 		if (pointer == -1) { //end of sample.
 			size =  buffersize;
@@ -108,13 +105,13 @@ computeSample(tuiConfig* p_uiConfig) {
 	datapoints[1] = datapoints[2] = 0;
 	// Compute Min, Max, Ave
 	for (int i = p_processingPtr; i < p_uiConfig->sample_size; i++) {
-		if (p_uiADCBuffer[i] < datapoints[0]) { // Compute Min
-			datapoints[0] = p_uiADCBuffer[i];
+		if (puiADC0Buffer[i] < datapoints[0]) { // Compute Min
+			datapoints[0] = puiADC0Buffer[i];
 		}
-		if (p_uiADCBuffer[i] > datapoints[1]) { // Compute Max
-			datapoints[1] = p_uiADCBuffer[i];
+		if (puiADC0Buffer[i] > datapoints[1]) { // Compute Max
+			datapoints[1] = puiADC0Buffer[i];
 		}
-		datapoints[2]+=p_uiADCBuffer[i];
+		datapoints[2]+=puiADC0Buffer[i];
 	}
 	datapoints[2] /= p_uiConfig->sample_size;
 	p_processingPtr += p_uiConfig->sample_size;
@@ -146,21 +143,14 @@ volatile uint32_t tobedelted =0;
  ***************************************************************/
 void GetSampleISR() {
 	// Reset pointer on new sample.
-//	char str[5];
 	ADCIntClear(ADC0_BASE, sequence);
-	tobedelted++;
-	ADCSequenceDataGet(ADC0_BASE, sequence,pui32ADC0Value);
-//	usprintf(str, "%d", pui32ADC0Value[0]);
-//	UARTprintf("ISR\r");
-//	UARTprintf(str);
-//	UARTprintf("\r");
-//	if (sequence == 0) {
-//		usprintf(str, "%d", pui32ADC0Value[7]);
-//		UARTprintf("WHAT: ");
-//		UARTprintf(str);
-//		UARTprintf("\r");
-//	}
-//	ADCProcessorTrigger(ADC0_BASE, sequence);
+	if (puiADC0BufferPtr == -1)puiADC0BufferPtr = 0;
+	ADCSequenceDataGet(ADC0_BASE, sequence, &puiADC0Buffer[puiADC0BufferPtr]);
+	puiADC0BufferPtr+=steplen;
+	if (puiADC0BufferPtr == buffersize) {// Reset buffer pointer, stop processing till started by SW.
+		puiADC0BufferPtr = -1;
+	//	TODO:Stop Command Here
+	}
 }
 /***************************************************************
  * Gets the Actual Frequency Equivalent of value
@@ -245,6 +235,8 @@ AcquireStart(tuiConfig* p_uiConfig) {
 	sequence = GetSequence(p_uiConfig);
 	ADCSequenceConfigure(ADC0_BASE, sequence, ADC_TRIGGER_TIMER, 3);
 	ADCIntRegister(ADC0_BASE, sequence, GetSampleISR);
+
+
 	//
 	// Configure step 0 on sequence 3.  Sample channel 0 (ADC_CTL_CH0) in
 	// single-ended mode (default) and configure the interrupt flag
@@ -261,6 +253,9 @@ AcquireStart(tuiConfig* p_uiConfig) {
 	} else if (p_uiConfig->channelOpt == VOLTS) {
 		config = ADC_CTL_CH0;
 	}
+	// Some important initialisations
+	// Configure the buffer size for sequence.
+	buffersize = p_uiConfig->sample_size * MAX_SAMPLES;
 	steplen = (sequence == 0)? 8:1;
 	for (int step = 0; step < steplen; step++) {
 		if (step == steplen-1)	{
@@ -305,11 +300,13 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
     // was used with a deeper FIFO, then the array size must be changed.
     //
 	puiConfig = puiConfig_t;
+	puiADC0BufferPtr = 0;
 //	AcquireInit(puiConfig);
 
 	// Wait for trigger event
 //	while((!eventflags) & ADC_TRIG_CTL){
 ////		UARTprintf("Checkpoint?\r");
+//	eventflags |= ADC_TRIG_CTL;
 //	}
 	// If we get to here that means ADC conversion has started.
 	char str[5];
@@ -323,7 +320,11 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 			// Stop logging
 //			break;
 		}
-		usprintf(str,"%d", tobedelted);
+		ROM_IntMasterDisable();
+		if ((puiADC0BufferPtr > 0)&&(puiADC0BufferPtr < buffersize)) {
+			usprintf(str,"%d", puiADC0Buffer[puiADC0BufferPtr-1]);
+		}
+		ROM_IntMasterEnable();
 		UARTprintf(str);
 		UARTprintf("\r");
 //		//
@@ -404,13 +405,13 @@ volatile int prev_value = 0;
 void TriggerDetectISR() {
 	ADCIntClear(ADC0_BASE, 3);
 	tobedelted++;
-	ADCSequenceDataGet(ADC0_BASE, 3,pui32ADC0Value);
+	ADCSequenceDataGet(ADC0_BASE, 3,puiADC0Buffer);
 	if (puiConfig->channelOpt == ACCEL) {
 		if (first) {
 			first = false;
-			prev_value = ReadAccel(pui32ADC0Value[0]);
+			prev_value = ReadAccel(puiADC0Buffer[0]);
 		} else {
-			int curr_value = ReadAccel(pui32ADC0Value[0]);
+			int curr_value = ReadAccel(puiADC0Buffer[0]);
 			if (abs(curr_value - prev_value) > 50) {
 				UARTprintf("Accel!\r");
 				// Set the event flag
@@ -420,7 +421,7 @@ void TriggerDetectISR() {
 			prev_value = curr_value;
 		}
 	} else if (puiConfig->channelOpt == VOLTS){
-		if (pui32ADC0Value[0] > VTHRES) {
+		if (puiADC0Buffer[0] > VTHRES) {
 			UARTprintf("Volts!\r");
 			eventflags|= ADC_TRIG_CTL;
 			StopDetection();

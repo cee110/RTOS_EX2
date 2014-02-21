@@ -38,12 +38,12 @@
 /****************************************************************
  * Buffer to store Acquisition Data
  ***************************************************************/
-uint32_t p_uiADCBuffer[MAX_SAMPLES*MAX_SAMPLE_SIZE];
+uint32_t puiADC0Buffer[MAX_SAMPLES*MAX_SAMPLE_SIZE];
 
 /****************************************************************
  * Pointer to ADC buffer.
  ***************************************************************/
-volatile int p_uiADCBufferPtr = 0;
+volatile int puiADC0BufferPtr = 0;
 /****************************************************************
  * Sample Event Flag
  ***************************************************************/
@@ -75,7 +75,7 @@ computeSample(tuiConfig* p_uiConfig) {
 	int size = 0;
 	do {
 		ROM_IntMasterDisable();
-		int pointer = p_uiADCBufferPtr;
+		int pointer = puiADC0BufferPtr;
 		ROM_IntMasterEnable();
 		if (pointer == -1) { //end of sample.
 			size =  buffersize;
@@ -92,13 +92,13 @@ computeSample(tuiConfig* p_uiConfig) {
 	datapoints[1] = datapoints[2] = 0;
 	// Compute Min, Max, Ave
 	for (int i = p_processingPtr; i < p_uiConfig->sample_size; i++) {
-		if (p_uiADCBuffer[i] < datapoints[0]) { // Compute Min
-			datapoints[0] = p_uiADCBuffer[i];
+		if (puiADC0Buffer[i] < datapoints[0]) { // Compute Min
+			datapoints[0] = puiADC0Buffer[i];
 		}
-		if (p_uiADCBuffer[i] > datapoints[1]) { // Compute Max
-			datapoints[1] = p_uiADCBuffer[i];
+		if (puiADC0Buffer[i] > datapoints[1]) { // Compute Max
+			datapoints[1] = puiADC0Buffer[i];
 		}
-		datapoints[2]+=p_uiADCBuffer[i];
+		datapoints[2]+=puiADC0Buffer[i];
 	}
 	datapoints[2] /= p_uiConfig->sample_size;
 	p_processingPtr += p_uiConfig->sample_size;
@@ -125,12 +125,12 @@ uint32_t GetSequence(tuiConfig* p_uiConfig){
 void GetSampleISR() {
 	// Reset pointer on new sample.
 	ADCIntClear(ADC0_BASE, sequence);
-	if (p_uiADCBufferPtr == -1)p_uiADCBufferPtr = 0;
-	ADCSequenceDataGet(ADC0_BASE, sequence, &p_uiADCBuffer[p_uiADCBufferPtr]);
-	p_uiADCBufferPtr+=steplen;
+	if (puiADC0BufferPtr == -1)puiADC0BufferPtr = 0;
+	ADCSequenceDataGet(ADC0_BASE, sequence, &puiADC0Buffer[puiADC0BufferPtr]);
+	puiADC0BufferPtr+=steplen;
 	UARTprintf(".\n");
-	if (p_uiADCBufferPtr == buffersize) {// Reset buffer pointer, stop processing till started by SW.
-		p_uiADCBufferPtr = -1;
+	if (puiADC0BufferPtr == buffersize) {// Reset buffer pointer, stop processing till started by SW.
+		puiADC0BufferPtr = -1;
 	//	TODO:Stop Command Here
 	}
 }
