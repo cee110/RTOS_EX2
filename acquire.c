@@ -447,6 +447,18 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 
 	// Wait for trigger event
 	while((!eventflags) & ADC_TRIG_CTL){
+		/*
+		 * check for button press while waiting. Should really
+		 * use an ISR for buttons. This is getting way too messy.
+		 */
+		vPollSBoxButton(pContext, record.puiConfig);
+		if (record.puiConfig->uiState == idle) {
+			// Stop logging, return to UI.
+//			break;
+			AcquireStop();
+			ClearAllScreen(record.pContext);
+			return;
+		}
 	}
 	// Reset trigger event flag.
 	eventflags &= !ADC_TRIG_CTL;
@@ -467,7 +479,7 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 //			break;
 			AcquireStop();
 			ClearAllScreen(record.pContext);
-			break;
+			return;
 		}
 		SysCtlDelay(SysCtlClockGet() / 100);
 	}

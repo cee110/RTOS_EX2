@@ -277,7 +277,6 @@ main(void)
 			// Redraw settings UI.
 			vPaintSBoxes(&sDisplayContext);
 		}
-
 	}
 
 }
