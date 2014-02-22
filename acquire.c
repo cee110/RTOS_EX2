@@ -296,6 +296,7 @@ void GetSampleISR() {
 		// Set the done bit of the event flag.
 		eventflags |= ADC_SAMPLE_DONE;
 	//	TODO:Stop Command Here
+		ADC0AcquireStop();
 	}
 	tobedelted++;
 }
@@ -463,6 +464,8 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 
 	// Initialise Graph x-axis
 	x_axis = 0;
+
+	uint32_t loopCount = 0;
 	// ---------------Run Acquire functionality----------------------//
 
 
@@ -487,26 +490,36 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 	eventflags &= !ADC_TRIG_CTL;
 	// If we get to here that means ADC conversion has started.
 	UARTprintf("  Checkpoint!\r");
+	while (1) {
+	// 	// Start logging data!
+		AcquireStart(record.puiConfig);
+		char str[5];
+		//reset loopcount
+		loopCount = 0;
+		while(loopCount != MAX_SAMPLES)
+		{
+			loopCount++;
+			vPollSBoxButton(pContext, record.puiConfig);
+			computeSample(record.pContext,record.puiConfig);
+			PlotData(record.pContext);
 
-// 	// Start logging data!
-	AcquireStart(record.puiConfig);
-	char str[5];
-	while(1)
-	{
-		vPollSBoxButton(pContext, record.puiConfig);
-		computeSample(record.pContext,record.puiConfig);
-		PlotData(record.pContext);
-
-		if (record.puiConfig->uiState == idle) {
-			// Stop logging, return to UI.
-//			break;
-			ADC0AcquireStop();
-			ClearAllScreen(record.pContext);
-			return;
+			if (record.puiConfig->uiState == idle) {
+				// Stop logging, return to UI.
+	//			break;
+				ADC0AcquireStop();
+				ClearAllScreen(record.pContext);
+				return;
+			}
+			SysCtlDelay(SysCtlClockGet() / 1000);
 		}
-		SysCtlDelay(SysCtlClockGet() / 100);
-	}
 
+		//TODO: Modify Loop to poll buttons.
+		if (record.puiConfig->channelOpt == ACCEL) {
+			SysCtlDelay(SysCtlClockGet());
+		} else if (record.puiConfig->channelOpt == VOLTS) {
+			SysCtlDelay(SysCtlClockGet()*10);
+		}
+	}
 }
 /*****************************************************************
  * Stops the trigger detection functionality.
