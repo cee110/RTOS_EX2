@@ -278,7 +278,7 @@ DrawStartBanner(tContext* pContext, char* title) {
 	sRect.i16XMin = 0;
 	sRect.i16YMin = 0;
 	sRect.i16XMax = GrContextDpyWidthGet(pContext) - 1;
-	sRect.i16YMax = 8;
+	sRect.i16YMax = 7;
 	GrContextForegroundSet(pContext, ClrWhite);
 	GrRectFill(pContext, &sRect);
 
@@ -293,14 +293,14 @@ DrawStartBanner(tContext* pContext, char* title) {
 	//
 	GrContextFontSet(pContext, g_psFontCm12);
 	GrStringDrawCentered(pContext, title, -1,
-GrContextDpyWidthGet(pContext) / 2, 4, 0);
+GrContextDpyWidthGet(pContext) / 2, 3, 0);
 }
 
 void
 ClearGraph(tContext* pContext) {
 	tRectangle sRect;
 	sRect.i16XMin = 0;
-	sRect.i16YMin = 9;
+	sRect.i16YMin = 8;
 	sRect.i16XMax = GrContextDpyWidthGet(pContext) - 1;
 	sRect.i16YMax = GrContextDpyHeightGet(pContext)-1;
 	GrContextForegroundSet(pContext, ClrBlack);

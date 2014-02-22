@@ -27,8 +27,8 @@ SysTickIntHandler():
   20:	48                   	dec    eax
   21:	00 00                	add    BYTE PTR [eax],al
   23:	01 10                	add    DWORD PTR [eax],edx
-  25:	e0 00                	loopne 27 <$t+0x27>
-  27:	e0 00                	loopne 29 <$t+0x29>
+  25:	e0 00                	loopne 27 <SysTickIntHandler+0x26>
+  27:	e0 00                	loopne 29 <SysTickIntHandler+0x28>
   29:	00 00                	add    BYTE PTR [eax],al
 	...
 
@@ -74,7 +74,7 @@ ConfigureUART():
   69:	f7 fe                	idiv   esi
   6b:	ff 00                	inc    DWORD PTR [eax]
   6d:	20 4f f4             	and    BYTE PTR [edi-0xc],cl
-  70:	e1 31                	loope  a3 <current_time+0xa3>
+  70:	e1 31                	loope  a3 <ConfigureUART+0x76>
   72:	06                   	push   es
   73:	4a                   	dec    edx
   74:	bd e8 10 40 ff       	mov    ebp,0xff4010e8
@@ -108,7 +108,7 @@ Timer0IntHandler():
   c8:	98                   	cwde   
   c9:	47                   	inc    edi
   ca:	09 4a 02             	or     DWORD PTR [edx+0x2],ecx
-  cd:	f0 70 43             	lock jo 113 <current_time+0x113>
+  cd:	f0 70 43             	lock jo 113 <Timer0IntHandler+0x56>
   d0:	43                   	inc    ebx
   d1:	f0 00 73 c2          	lock add BYTE PTR [ebx-0x3e],dh
   d5:	f3 13 02             	repz adc eax,DWORD PTR [edx]
@@ -141,7 +141,7 @@ Timer1IntHandler():
  1bc:	98                   	cwde   
  1bd:	47                   	inc    edi
  1be:	0a 4a 02             	or     cl,BYTE PTR [edx+0x2]
- 1c1:	f0 70 43             	lock jo 207 <current_time+0x207>
+ 1c1:	f0 70 43             	lock jo 207 <Timer1IntHandler+0x56>
  1c4:	43                   	inc    ebx
  1c5:	f0 00 73 c2          	lock add BYTE PTR [ebx-0x3e],dh
  1c9:	f3 13 02             	repz adc eax,DWORD PTR [edx]
@@ -202,14 +202,14 @@ Disassembly of section .text.startup.main:
 
 0000076c <$t>:
 $t():
- 76c:	08 b5 10 4b 10 48    	or     BYTE PTR [ebp+0x48104b10],dh
+ 76c:	08 b5 12 4b 12 48    	or     BYTE PTR [ebp+0x48124b12],dh
 
 0000076d <main>:
 main():
- 76d:	b5 10                	mov    ch,0x10
+ 76d:	b5 12                	mov    ch,0x12
  76f:	4b                   	dec    ebx
- 770:	10 48 1b             	adc    BYTE PTR [eax+0x1b],cl
- 773:	68 10 4c db 6d       	push   0x6ddb4c10
+ 770:	12 48 1b             	adc    cl,BYTE PTR [eax+0x1b]
+ 773:	68 12 4c db 6d       	push   0x6ddb4c12
  778:	98                   	cwde   
  779:	47                   	inc    edi
  77a:	ff f7                	push   edi
@@ -220,30 +220,32 @@ main():
  781:	ff                   	(bad)  
  782:	ff f7                	push   edi
  784:	fe                   	(bad)  
- 785:	ff 0d 48 0d 49 ff    	dec    DWORD PTR ds:0xff490d48
+ 785:	ff 0f                	dec    DWORD PTR [edi]
+ 787:	48                   	dec    eax
+ 788:	0f 49 ff             	cmovns edi,edi
  78b:	f7 fe                	idiv   esi
  78d:	ff 00                	inc    DWORD PTR [eax]
- 78f:	23 0a                	and    ecx,DWORD PTR [edx]
- 791:	48                   	dec    eax
+ 78f:	23 0c 48             	and    ecx,DWORD PTR [eax+ecx*2]
  792:	63 72 ff             	arpl   WORD PTR [edx-0x1],si
  795:	f7 fe                	idiv   esi
- 797:	ff 08                	dec    DWORD PTR [eax]
+ 797:	ff 0a                	dec    DWORD PTR [edx]
  799:	48                   	dec    eax
- 79a:	07                   	pop    es
- 79b:	49                   	dec    ecx
- 79c:	ff f7                	push   edi
- 79e:	fe                   	(bad)  
+ 79a:	09 49 ff             	or     DWORD PTR [ecx-0x1],ecx
+ 79d:	f7 fe                	idiv   esi
  79f:	ff 63 7a             	jmp    DWORD PTR [ebx+0x7a]
  7a2:	01 2b                	add    DWORD PTR [ebx],ebp
  7a4:	f8                   	clc    
- 7a5:	d1 05 48 03 49 ff    	rol    DWORD PTR ds:0xff490348,1
- 7ab:	f7 fe                	idiv   esi
- 7ad:	ff f3                	push   ebx
- 7af:	e7 44                	out    0x44,eax
+ 7a5:	d1 07                	rol    DWORD PTR [edi],1
+ 7a7:	48                   	dec    eax
+ 7a8:	05 49 ff f7 fe       	add    eax,0xfef7ff49
+ 7ad:	ff 05 48 ff f7 fe    	inc    DWORD PTR ds:0xfef7ff48
+ 7b3:	ff f0                	push   eax
+ 7b5:	e7 00                	out    0x0,eax
+ 7b7:	bf 44 00 00 01       	mov    edi,0x1000044
 
-000007b0 <$d>:
- 7b0:	44                   	inc    esp
- 7b1:	00 00                	add    BYTE PTR [eax],al
- 7b3:	01 40 05             	add    DWORD PTR [eax+0x5],eax
- 7b6:	c0 01 00             	rol    BYTE PTR [ecx],0x0
+000007b8 <$d>:
+ 7b8:	44                   	inc    esp
+ 7b9:	00 00                	add    BYTE PTR [eax],al
+ 7bb:	01 40 05             	add    DWORD PTR [eax+0x5],eax
+ 7be:	c0 01 00             	rol    BYTE PTR [ecx],0x0
 	...

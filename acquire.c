@@ -90,7 +90,7 @@ volatile uint32_t x_axis;
  * Initialise the Graphics configuration
  ****************************************************************/
 tYBounds yBounds[] = {
-		{250, -250, ACCEL },				// Accelerometer unit is g*100
+		{250, -50, ACCEL },				// Accelerometer unit is g*100
 		{200, 0, VOLTS }					// Voltage is in V*100
 };
 /****************************************************************
@@ -108,7 +108,7 @@ volatile tguiConfig record = {
 };
 
 //-------------------------Functions----------------------------//
-void AcquireStop() {
+void ADC0AcquireStop() {
 
 	// Disable every sequence used in ADC0.
 	//
@@ -132,38 +132,61 @@ int ReadAccel(uint32_t value) {
 }
 /****************************************************************/
 #define MAX_SCREEN_Y_AXIS 56
+/*
+ * Gets the fraction of the screen for the appropriate boundary condition.
+ * If values exceeds the maximum then it saturates at the maximum.
+ * Likewise for minimum.
+ */
 uint32_t
 GetYAxis(channel_enum channel, uint32_t val) {
 	uint32_t temp = 0;
-	for(int i = 0;i < sizeof(yBounds)/sizeof(tYBounds);i++){
+	// Get the fraction of the screen for appropriate boundary condition.
+	for (int i = 0; i < sizeof(yBounds)/sizeof(tYBounds);i++){ // Search for matching channel
 		if (yBounds[i].channel == channel) {
 			if (channel == ACCEL) {
-				temp = (ReadAccel(val) - record.pYbounds[i].MIN)*MAX_SCREEN_Y_AXIS/ (record.pYbounds[i].MAX - record.pYbounds[i].MIN);
+				int temp_accel = ReadAccel(val);
+				if (temp_accel > record.pYbounds[i].MAX ) {
+					temp = MAX_SCREEN_Y_AXIS;
+				} else if (temp_accel < record.pYbounds[i].MIN) {
+					temp = 0;
+				} else {
+					temp = ((temp_accel - record.pYbounds[i].MIN)*MAX_SCREEN_Y_AXIS)/ (record.pYbounds[i].MAX - record.pYbounds[i].MIN);
+				}
 				break;
+
 			} else if(channel == VOLTS){
-				temp = (val - yBounds[i].MIN)*MAX_SCREEN_Y_AXIS/ (yBounds[i].MAX-yBounds[i].MIN);
+				if (val > record.pYbounds[i].MAX ) {
+					temp = MAX_SCREEN_Y_AXIS;
+				} else if (val < record.pYbounds[i].MIN) {
+					temp = 0;
+				} else {
+					temp = ((val - record.pYbounds[i].MIN)*MAX_SCREEN_Y_AXIS)/ (record.pYbounds[i].MAX - record.pYbounds[i].MIN);
+				}
 				break;
 			}
 		}
 	}
-	return temp;
+
+	// Account for screen inverting.
+	return 63-temp;
 }
 
 /****************************************************************
  * Plots one sample on OLED
  *****************************************************************/
 void
-PlotData(){
-DpyPixelDraw(&g_sCFAL96x64x16, x_axis,
-		GetYAxis(record.puiConfig->channelOpt, datapoints.max), record.pSeriesColor->MAX_COLOR);	// Draw max first.
+PlotData(tContext* psContext){
+	GrContextForegroundSet(psContext, record.pSeriesColor->MAX_COLOR);
+	GrPixelDraw(psContext, x_axis,GetYAxis(record.puiConfig->channelOpt, datapoints.max)); // Draw max first.
 
-DpyPixelDraw(&g_sCFAL96x64x16, x_axis,
-		GetYAxis(record.puiConfig->channelOpt, datapoints.min), record.pSeriesColor->MIN_COLOR);	// Draw max first.
+	GrContextForegroundSet(psContext, record.pSeriesColor->MIN_COLOR);
+	GrPixelDraw(psContext, x_axis,GetYAxis(record.puiConfig->channelOpt, datapoints.min)); // Draw min
 
-DpyPixelDraw(&g_sCFAL96x64x16, x_axis,
-		GetYAxis(record.puiConfig->channelOpt, datapoints.ave), record.pSeriesColor->AVE_COLOR);	// Draw max first.
-x_axis++;
-//wraparound.
+	GrContextForegroundSet(psContext, record.pSeriesColor->AVE_COLOR);
+	GrPixelDraw(psContext, x_axis,GetYAxis(record.puiConfig->channelOpt, datapoints.ave)); // Draw ave last
+
+	x_axis++;
+	//wraparound.
 	if(x_axis == MAX_SAMPLES) {
 		x_axis = 0;
 		//Clear Graph.
@@ -455,7 +478,7 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 		if (record.puiConfig->uiState == idle) {
 			// Stop logging, return to UI.
 //			break;
-			AcquireStop();
+			ADC0AcquireStop();
 			ClearAllScreen(record.pContext);
 			return;
 		}
@@ -472,12 +495,12 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 	{
 		vPollSBoxButton(pContext, record.puiConfig);
 		computeSample(record.pContext,record.puiConfig);
-		PlotData();
+		PlotData(record.pContext);
 
 		if (record.puiConfig->uiState == idle) {
 			// Stop logging, return to UI.
 //			break;
-			AcquireStop();
+			ADC0AcquireStop();
 			ClearAllScreen(record.pContext);
 			return;
 		}
@@ -539,7 +562,7 @@ void TriggerDetectISR() {
 				UARTprintf("Accel!\r");
 				// Set the event flag
 				eventflags|= ADC_TRIG_CTL;
-				AcquireStop();
+				ADC0AcquireStop();
 			}
 			prev_value = curr_value;
 		}
@@ -547,7 +570,7 @@ void TriggerDetectISR() {
 		if (puiADC0Buffer[0] > VTHRES) {
 			UARTprintf("Volts!\r");
 			eventflags|= ADC_TRIG_CTL;
-			AcquireStop();
+			ADC0AcquireStop();
 		}
 	}
 }
