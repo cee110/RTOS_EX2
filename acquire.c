@@ -322,7 +322,6 @@ GetPeriod(uint32_t freq){
 // ***************************************************************
 void
 StartTimerTrigger0(uint32_t period) {
-
 	ROM_TimerLoadSet(TIMER0_BASE, TIMER_A, period);
 	// Set the timer to trigger ADC conversion.
 	TimerControlTrigger(TIMER0_BASE, TIMER_A, true);
@@ -364,7 +363,7 @@ ADC0AcquireStart(tuiConfig* p_uiConfig, void (*pfnHandler)(void)) {
 	// to sequence 3.  This example is arbitrarily using sequence 3.
 	//
 
-	ADCSequenceConfigure(ADC0_BASE, sequence, ADC_TRIGGER_TIMER, 3);
+	ADCSequenceConfigure(ADC0_BASE, sequence, ADC_TRIGGER_TIMER, 1);
 	ADCIntRegister(ADC0_BASE, sequence, pfnHandler);
 
 	//

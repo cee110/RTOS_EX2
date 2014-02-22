@@ -103,48 +103,15 @@ ConfigTimer1(uint32_t period) {
  * to look out for depends on the user's selection. The interrupt is
  * called every 100ms.
  ****************************************************************/
-void AcquireInit(tuiConfig* p_uiConfig) {
-	// Resets the event flags
-	eventflags = 0;
-	//
-	// The ADC0 peripheral must be enabled for use.
-	//
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
+void ADC1AcquireStart(tuiConfig* p_uiConfig, void (*pfnHandler)(void)) {
 
-	//
-	// GPIO port E needs to be enabled
-	// so the GPIO pins for data input can be used.
-	//
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
-
-	//
-	// Select the analog ADC function for these pins.
-	// Accelerometer z-axis is on PE6 and AIN0 is on PE3
-	//
-	if (p_uiConfig->channelOpt == ACCEL) {
-		GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_6);
-	} else if (p_uiConfig->channelOpt == VOLTS) {
-		GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3);
-	}
-
-	//
-	// Select the external reference for greatest accuracy.
-	//
-	ADCReferenceSet(ADC0_BASE, ADC_REF_EXT_3V);
-
-	//
-	// Apply workaround for erratum 6.1, in order to use the
-	// external reference.
-	//
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
-	HWREG(GPIO_PORTB_BASE + GPIO_O_AMSEL) |= GPIO_PIN_6;
 	//
 	// Enable sample sequence 3 with a timer trigger.  Sequence 3
 	// will do a single sample when the processor sends a signal to start the
 	// conversion.  Each ADC module has 4 programmable sequences, sequence 0
 	// to sequence 3.
 	//
-	ADCSequenceConfigure(ADC0_BASE, 3, ADC_TRIGGER_TIMER, 3);
+	ADCSequenceConfigure(ADC1_BASE, 3, ADC_TRIGGER_TIMER, 0);
 	// Register the interupt called after ADC conversion.
 	ADCIntRegister(ADC0_BASE, 3, TriggerDetectISR);
 	/*
