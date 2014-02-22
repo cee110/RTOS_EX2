@@ -273,7 +273,9 @@ main(void)
 		/* vProcessSBoxButton should be called regularly */
 		vPollSBoxButton(&sDisplayContext,&uiConfig); 					/* poll keys, changing SBoxes if needed */
 		if (uiConfig.uiState == logging) {
-			AcquireMain(&sDisplayContext, &uiConfig);
+			AcquireMain(&sDisplayContext, &uiConfig); //This is an infinite loop till user pressed a button.
+			// Redraw settings UI.
+			vPaintSBoxes(&sDisplayContext);
 		}
 
 	}

@@ -188,7 +188,18 @@ void vPaintSBoxes(tContext *context)
 	WriteString(context, pLabel->text, 1, 3, 4);
     GrFlush( context);
 }
-
+/******************************************************************************
+ * Clears entire screen to black.
+ ******************************************************************************/
+void ClearAllScreen(tContext* pContext) {
+	tRectangle sRect;
+		sRect.i16XMin = 0;
+		sRect.i16YMin = 0;
+		sRect.i16XMax = GrContextDpyWidthGet(pContext) - 1;
+		sRect.i16YMax = GrContextDpyHeightGet(pContext)-1;
+		GrContextForegroundSet(pContext, ClrBlack);
+		GrRectFill(pContext, &sRect);
+}
 void
 processOptions(tuiConfig* p_uiConfig) {
 	if (pCurrentSBox == &pCurrentSBoxDefinitions[0])
@@ -206,7 +217,7 @@ processOptions(tuiConfig* p_uiConfig) {
  * Controls all the button functions across the app.
  * No other function should do this.
  ******************************************************************************/
-void vPollSBoxButton(tContext* sContext, tuiConfig* p_uiConfig)
+void vPollSBoxButton(tContext* psContext, tuiConfig* p_uiConfig)
 {
 	uint8_t buttons, buttons_raw;
 	ButtonsPoll(&buttons, &buttons_raw);
@@ -233,13 +244,15 @@ void vPollSBoxButton(tContext* sContext, tuiConfig* p_uiConfig)
 			UARTprintf("SELECT BUTTON \n");
 		}
 		if (buttons & (UP_BUTTON | DOWN_BUTTON | LEFT_BUTTON | RIGHT_BUTTON)) {
-			vPaintSBoxes(sContext);
+			vPaintSBoxes(psContext);
 		}
 	}
 	else if(p_uiConfig->uiState == logging) {
 		if (buttons & (UP_BUTTON | DOWN_BUTTON | LEFT_BUTTON | RIGHT_BUTTON)) {
+			// return to Settings.
 			p_uiConfig->uiState = idle;
-			vPaintSBoxes(sContext);
+//			ClearAllScreen(psContext);
+//			vPaintSBoxes(psContext);
 		}
 	}
 }
@@ -282,10 +295,10 @@ DrawStartBanner(tContext* pContext, char* title) {
 	GrStringDrawCentered(pContext, title, -1,
 GrContextDpyWidthGet(pContext) / 2, 4, 0);
 }
+
 void
 ClearGraph(tContext* pContext) {
 	tRectangle sRect;
-	// Clear Screen first
 	sRect.i16XMin = 0;
 	sRect.i16YMin = 9;
 	sRect.i16XMax = GrContextDpyWidthGet(pContext) - 1;
@@ -302,7 +315,6 @@ void vInitUI(tContext* sContext)
 	vPaintSBoxes(sContext);
 }
 
-/*------------------------------EXAMPLE CODE USING SBOXES-------------------------*/
 
 
 

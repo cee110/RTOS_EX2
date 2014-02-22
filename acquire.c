@@ -45,8 +45,6 @@ uint32_t puiADC0Buffer[MAX_SAMPLES*MAX_SAMPLE_SIZE];
  ***************************************************************/
 volatile uint32_t* puiADC0StartPtr;
 volatile uint32_t* puiADC0StopPtr;
-
-volatile int puiADC0BufferPtr = 0;
 /****************************************************************
  * Acquire Event Flags.
  * Bit 0: For Normal Data logging Start Trigger.
@@ -59,9 +57,9 @@ volatile int puiADC0BufferPtr = 0;
  * 1 means that the current sampling set has been gotten.
  ***************************************************************/
 volatile uint8_t eventflags = 0;
-/*
+/* ***************************************************************
  * Defines for accessing eventflag bits.
- */
+ * ***************************************************************/
 #define ADC_TRIG_CTL 0x01
 #define ADC_SAMPLE_DONE 0x02
 
@@ -80,15 +78,14 @@ typedef struct tdata {
 }tdatapoint;
 
 volatile tdatapoint datapoints = {MAX_NUM,0,0};
-
 /****************************************************************
  * Pointer to NEXT line of ADC buffer for processing.
  ***************************************************************/
 volatile uint32_t* p_processingPtr;
 /****************************************************************
- * Stores the user's options.
+ * Graphs x-axis. Here because it needs global initialisation.
  ****************************************************************/
-//volatile tuiConfig* puiConfig;
+volatile uint32_t x_axis;
 /****************************************************************
  * Initialise the Graphics configuration
  ****************************************************************/
@@ -111,7 +108,24 @@ volatile tguiConfig record = {
 };
 
 //-------------------------Functions----------------------------//
+void AcquireStop() {
 
+	// Disable every sequence used in ADC0.
+	//
+	// Disable ADC interrupts
+	//
+	ROM_IntDisable(INT_ADC0SS0);
+	ROM_IntDisable(INT_ADC0SS3);
+
+	//
+	// Disable ADC sequencers
+	//
+	ROM_ADCSequenceDisable(ADC0_BASE, 0);
+	ROM_ADCSequenceDisable(ADC0_BASE, 3);
+
+	TimerControlTrigger(TIMER0_BASE, TIMER_A, false);
+
+}
 // Returns Accelerometer value in g*100 read raw from ADC buffer.
 int ReadAccel(uint32_t value) {
 	return (2442*(int)value - 5000000)/10000;
@@ -140,7 +154,6 @@ GetYAxis(channel_enum channel, uint32_t val) {
  *****************************************************************/
 void
 PlotData(){
-volatile static uint32_t x_axis = 0;
 DpyPixelDraw(&g_sCFAL96x64x16, x_axis,
 		GetYAxis(record.puiConfig->channelOpt, datapoints.max), record.pSeriesColor->MAX_COLOR);	// Draw max first.
 
@@ -164,7 +177,7 @@ x_axis++;
  * TODO: Use mutex instead of critical sections.
  *************************************************************/
 void
-computeSample(tuiConfig* p_uiConfig) {
+computeSample(tContext *pContext, tuiConfig* p_uiConfig) {
 	// Read the ADC buffer pointer in a critical section.
 	// Loops until buffer has enough data.
 //	UARTprintf("Sample\r");
@@ -172,13 +185,25 @@ computeSample(tuiConfig* p_uiConfig) {
 	uint32_t * pointer;
 	int size = 0;
 	char debugChar[10];
+
 	do {
 		ROM_IntMasterDisable();
 		pointer = puiADC0StartPtr;
 		ROM_IntMasterEnable();
 		size = pointer - p_processingPtr;
 		// Don't poll too fast to starve the ISR with the critical section.
+		/*
+		 * Because compute sample may take a while for the slowest
+		 * sampling frequency, button polling is inserted here to
+		 * check if a button has been pressed.
+		 * TODO: implement button press isr.
+		 */
+		vPollSBoxButton(pContext, p_uiConfig);
+		if (record.puiConfig->uiState == idle) {
+			return;
+		}
 		SysCtlDelay(1000);
+
 	} while(size < p_uiConfig->sample_size);
 //	usprintf(debugChar, "%d", size);
 //	UARTprintf(debugChar);
@@ -249,6 +274,7 @@ void GetSampleISR() {
 		eventflags |= ADC_SAMPLE_DONE;
 	//	TODO:Stop Command Here
 	}
+	tobedelted++;
 }
 /***************************************************************
  * Gets the Actual Frequency Equivalent of value
@@ -400,7 +426,6 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 	p_processingPtr = puiADC0Buffer;
 	puiADC0StartPtr = puiADC0Buffer;
 	puiADC0StopPtr = &puiADC0Buffer[record.puiConfig->sample_size * MAX_SAMPLES];
-	puiADC0BufferPtr = 0;
 	sequence = GetSequence(record.puiConfig);
 	steplen = (sequence == 0)? 8:1;
 	// Initialise title.
@@ -412,66 +437,39 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 	//Initialise the context
 	record.pContext = pContext;
 	DrawStartBanner(pContext, record.seriesTitle);
+
+	// Initialise Graph x-axis
+	x_axis = 0;
 	// ---------------Run Acquire functionality----------------------//
 
-	/*
-	AcquireInit(puiConfig);
+
+	AcquireInit(record.puiConfig);
+
 	// Wait for trigger event
 	while((!eventflags) & ADC_TRIG_CTL){
-		UARTprintf("Checkpoint?\r");
-		// Reset trigger event flag.
-		eventflags |= ADC_TRIG_CTL;
 	}
+	// Reset trigger event flag.
+	eventflags &= !ADC_TRIG_CTL;
 	// If we get to here that means ADC conversion has started.
 	UARTprintf("  Checkpoint!\r");
-	*/
 
- 	// Start logging data!
+// 	// Start logging data!
 	AcquireStart(record.puiConfig);
 	char str[5];
 	while(1)
 	{
 		vPollSBoxButton(pContext, record.puiConfig);
-		if (record.puiConfig->uiState == idle) {
-			// Stop logging
-//			break;
-		}
-		computeSample(record.puiConfig);
+		computeSample(record.pContext,record.puiConfig);
 		PlotData();
-//		//
-//		// Trigger the ADC conversion.
-//		//
-//
-//
-//		//
-//		// Wait for conversion to be completed.
-//		//
-//		while(!ADCIntStatus(ADC0_BASE, 3, false))
-//		{
-//		}
-//
-//		//
-//		// Clear the ADC interrupt flag.
-//		//
-//		ADCIntClear(ADC0_BASE, 3);
-//
-//		//
-//		// Read ADC Value. The ADC AIN0 value read is voltage * 100.
-//		//
-//		ADCSequenceDataGet(ADC0_BASE, 3, pui32ADC0Value);
-//
-//		//
-//		// Display the AIN0 (PE7) digital value on the console.
-//		//
-//		UARTprintf("AIN0 = %d\r",pui32ADC0Value[0]);
-//
-//		//
-//		// This function provides a means of generating a constant length
-//		// delay.  The function delay (in cycles) = 3 * parameter.  Delay
-//		// 250ms arbitrarily.
-//		//
+
+		if (record.puiConfig->uiState == idle) {
+			// Stop logging, return to UI.
+//			break;
+			AcquireStop();
+			ClearAllScreen(record.pContext);
+			break;
+		}
 		SysCtlDelay(SysCtlClockGet() / 100);
-		ROM_IntMasterDisable();
 	}
 
 }
@@ -480,10 +478,10 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
  *****************************************************************/
 void
 StopDetection() {
-	// Stop the timer from triggering ADC conversion.
-	TimerControlTrigger(TIMER0_BASE, TIMER_A, false);
 	// Disable the interrupt.
 	ADCIntDisable(ADC0_BASE, 3);
+	// Stop the timer from triggering ADC conversion.
+	TimerControlTrigger(TIMER0_BASE, TIMER_A, false);
 	// First remove the ISR.
 	ADCIntUnregister(ADC0_BASE,3);
 	// Disable the sequence.
@@ -493,6 +491,7 @@ StopDetection() {
 	//
 //	SysCtlPeripheralDisable(SYSCTL_PERIPH_ADC0);
 }
+
 /****************************************************************
  * Defines the threshold voltage for the volts trigger detection.
  ****************************************************************/
@@ -528,7 +527,7 @@ void TriggerDetectISR() {
 				UARTprintf("Accel!\r");
 				// Set the event flag
 				eventflags|= ADC_TRIG_CTL;
-				StopDetection();
+				AcquireStop();
 			}
 			prev_value = curr_value;
 		}
@@ -536,7 +535,7 @@ void TriggerDetectISR() {
 		if (puiADC0Buffer[0] > VTHRES) {
 			UARTprintf("Volts!\r");
 			eventflags|= ADC_TRIG_CTL;
-			StopDetection();
+			AcquireStop();
 		}
 	}
 }
