@@ -244,6 +244,55 @@ void vPollSBoxButton(tContext* sContext, tuiConfig* p_uiConfig)
 	}
 }
 
+// --------------Functions for Acquire ---------------------------//
+/******************************************************************************
+ * This clears the screen and draws a Title banner on the first 8 pixels in the Y-axis.
+ ******************************************************************************/
+void
+DrawStartBanner(tContext* pContext, char* title) {
+	tRectangle sRect;
+
+	// Clear Screen first
+	sRect.i16XMin = 0;
+	sRect.i16YMin = 0;
+	sRect.i16XMax = GrContextDpyWidthGet(pContext) - 1;
+	sRect.i16YMax = GrContextDpyHeightGet(pContext)-1;
+	GrContextForegroundSet(pContext, ClrBlack);
+	GrRectFill(pContext, &sRect);
+	//
+	// Fill the top 8 rows of the screen with blue to create the banner.
+	//
+	sRect.i16XMin = 0;
+	sRect.i16YMin = 0;
+	sRect.i16XMax = GrContextDpyWidthGet(pContext) - 1;
+	sRect.i16YMax = 8;
+	GrContextForegroundSet(pContext, ClrWhite);
+	GrRectFill(pContext, &sRect);
+
+	//
+	// Put a blue box around the banner.
+	//
+	GrContextForegroundSet(pContext, ClrBlue);
+	GrRectDraw(pContext, &sRect);
+
+	//
+	// Put the title in the middle of the banner.
+	//
+	GrContextFontSet(pContext, g_psFontCm12);
+	GrStringDrawCentered(pContext, title, -1,
+GrContextDpyWidthGet(pContext) / 2, 4, 0);
+}
+void
+ClearGraph(tContext* pContext) {
+	tRectangle sRect;
+	// Clear Screen first
+	sRect.i16XMin = 0;
+	sRect.i16YMin = 9;
+	sRect.i16XMax = GrContextDpyWidthGet(pContext) - 1;
+	sRect.i16YMax = GrContextDpyHeightGet(pContext)-1;
+	GrContextForegroundSet(pContext, ClrBlack);
+	GrRectFill(pContext, &sRect);
+}
 /******************************************************************************
  * Initialises the UI
  ******************************************************************************/

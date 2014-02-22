@@ -88,29 +88,74 @@ volatile uint32_t* p_processingPtr;
 /****************************************************************
  * Stores the user's options.
  ****************************************************************/
-volatile tuiConfig* puiConfig;
+//volatile tuiConfig* puiConfig;
 /****************************************************************
  * Initialise the Graphics configuration
  ****************************************************************/
-volatile tguiConfig guiConfig[] = {
+tYBounds yBounds[] = {
 		{250, -250, ACCEL },				// Accelerometer unit is g*100
 		{200, 0, VOLTS }					// Voltage is in V*100
 };
 /****************************************************************
- * Initialise the series configuration
+ * Initialise the series color
  ****************************************************************/
-volatile seriesColor series[] = {
-		{MAX, ClrRed},
-		{MIN, ClrGreen},
-		{AVE, ClrWhite}
+tseriesColor seriesColor = {ClrRed, ClrGreen, ClrWhite};
+/****************************************************************
+ * Initialise the graphics configuration
+ ****************************************************************/
+volatile tguiConfig record = {
+		0,
+		yBounds,
+		&seriesColor,
+		0
 };
+
+//-------------------------Functions----------------------------//
+
+// Returns Accelerometer value in g*100 read raw from ADC buffer.
+int ReadAccel(uint32_t value) {
+	return (2442*(int)value - 5000000)/10000;
+}
+/****************************************************************/
+#define MAX_SCREEN_Y_AXIS 56
+uint32_t
+GetYAxis(channel_enum channel, uint32_t val) {
+	uint32_t temp = 0;
+	for(int i = 0;i < sizeof(yBounds)/sizeof(tYBounds);i++){
+		if (yBounds[i].channel == channel) {
+			if (channel == ACCEL) {
+				temp = (ReadAccel(val) - record.pYbounds[i].MIN)*MAX_SCREEN_Y_AXIS/ (record.pYbounds[i].MAX - record.pYbounds[i].MIN);
+				break;
+			} else if(channel == VOLTS){
+				temp = (val - yBounds[i].MIN)*MAX_SCREEN_Y_AXIS/ (yBounds[i].MAX-yBounds[i].MIN);
+				break;
+			}
+		}
+	}
+	return temp;
+}
 
 /****************************************************************
  * Plots one sample on OLED
  *****************************************************************/
 void
 PlotData(){
+volatile static uint32_t x_axis = 0;
+DpyPixelDraw(&g_sCFAL96x64x16, x_axis,
+		GetYAxis(record.puiConfig->channelOpt, datapoints.max), record.pSeriesColor->MAX_COLOR);	// Draw max first.
 
+DpyPixelDraw(&g_sCFAL96x64x16, x_axis,
+		GetYAxis(record.puiConfig->channelOpt, datapoints.min), record.pSeriesColor->MIN_COLOR);	// Draw max first.
+
+DpyPixelDraw(&g_sCFAL96x64x16, x_axis,
+		GetYAxis(record.puiConfig->channelOpt, datapoints.ave), record.pSeriesColor->AVE_COLOR);	// Draw max first.
+x_axis++;
+//wraparound.
+	if(x_axis == MAX_SAMPLES) {
+		x_axis = 0;
+		//Clear Graph.
+		ClearGraph(record.pContext);
+	}
 }
 /************************************************************
  * Reads the ADC buffer to compute the min, max and ave data points.
@@ -122,7 +167,7 @@ void
 computeSample(tuiConfig* p_uiConfig) {
 	// Read the ADC buffer pointer in a critical section.
 	// Loops until buffer has enough data.
-	UARTprintf("Sample\r");
+//	UARTprintf("Sample\r");
 
 	uint32_t * pointer;
 	int size = 0;
@@ -140,7 +185,8 @@ computeSample(tuiConfig* p_uiConfig) {
 //	UARTprintf("\r");
 	// Reset data points;
 	datapoints.min = MAX_NUM;
-	datapoints.max = datapoints.ave = 0;
+	datapoints.max = 0;
+	datapoints.ave = 0;
 	// Compute Min, Max, Ave
 	for (int i = 0; i < p_uiConfig->sample_size; i++) {
 		if (p_processingPtr[0] < datapoints.min) { // Compute Min
@@ -155,11 +201,16 @@ computeSample(tuiConfig* p_uiConfig) {
 	datapoints.ave /= p_uiConfig->sample_size;
 	// Check for wrap around
 	if (p_processingPtr == puiADC0StopPtr) {
-		p_processingPtr = puiADC0StartPtr;
+		p_processingPtr = puiADC0Buffer;
 	}
-	usprintf(debugChar, "%d", datapoints.ave);
+//	UARTprintf("start...\r");
+	usprintf(debugChar, "%5d", datapoints.max);
 	UARTprintf(debugChar);
-	UARTprintf("\r");
+	UARTprintf(" \r");
+	UARTprintf("ave \r");
+	usprintf(debugChar, "%5d", datapoints.ave);
+	UARTprintf(debugChar);
+	UARTprintf(" \r");
 }
 /************************************************************
  * Gets the appropriate sequence for the ADC.
@@ -325,10 +376,6 @@ AcquireStart(tuiConfig* p_uiConfig) {
 	ConfigTimer0(GetPeriod(p_uiConfig->freq));
 }
 
-// Returns Accelerometer value in g*100 read raw from ADC buffer.
-int ReadAccel(uint32_t value) {
-	return (2442*(int)value - 5000000)/10000;
-}
 // Described with its implementation.
 void AcquireInit(tuiConfig* p_uiConfig);
 
@@ -348,15 +395,23 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 
 	// --------------------Initialisations----------------------------//
 	//initialise user configuration
-	puiConfig = puiConfig_t;
+	record.puiConfig = puiConfig_t;
 	//initialise pointers
 	p_processingPtr = puiADC0Buffer;
 	puiADC0StartPtr = puiADC0Buffer;
-	puiADC0StopPtr = &puiADC0Buffer[puiConfig->sample_size * MAX_SAMPLES - 1];
+	puiADC0StopPtr = &puiADC0Buffer[record.puiConfig->sample_size * MAX_SAMPLES];
 	puiADC0BufferPtr = 0;
-	sequence = GetSequence(puiConfig);
+	sequence = GetSequence(record.puiConfig);
 	steplen = (sequence == 0)? 8:1;
-
+	// Initialise title.
+	if (record.puiConfig->channelOpt == ACCEL) {
+		record.seriesTitle = "ACCEL";
+	}else if (record.puiConfig->channelOpt == VOLTS) {
+		record.seriesTitle = "VOLTS";
+	}
+	//Initialise the context
+	record.pContext = pContext;
+	DrawStartBanner(pContext, record.seriesTitle);
 	// ---------------Run Acquire functionality----------------------//
 
 	/*
@@ -372,16 +427,17 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 	*/
 
  	// Start logging data!
-	AcquireStart(puiConfig);
+	AcquireStart(record.puiConfig);
 	char str[5];
 	while(1)
 	{
-		vPollSBoxButton(pContext, puiConfig);
-		if (puiConfig->uiState == idle) {
+		vPollSBoxButton(pContext, record.puiConfig);
+		if (record.puiConfig->uiState == idle) {
 			// Stop logging
 //			break;
 		}
-		computeSample(puiConfig);
+		computeSample(record.puiConfig);
+		PlotData();
 //		//
 //		// Trigger the ADC conversion.
 //		//
@@ -462,7 +518,7 @@ void TriggerDetectISR() {
 	ADCIntClear(ADC0_BASE, 3);
 	tobedelted++;
 	ADCSequenceDataGet(ADC0_BASE, 3,puiADC0Buffer);
-	if (puiConfig->channelOpt == ACCEL) {
+	if (record.puiConfig->channelOpt == ACCEL) {
 		if (first) {
 			first = false;
 			prev_value = ReadAccel(puiADC0Buffer[0]);
@@ -476,7 +532,7 @@ void TriggerDetectISR() {
 			}
 			prev_value = curr_value;
 		}
-	} else if (puiConfig->channelOpt == VOLTS){
+	} else if (record.puiConfig->channelOpt == VOLTS){
 		if (puiADC0Buffer[0] > VTHRES) {
 			UARTprintf("Volts!\r");
 			eventflags|= ADC_TRIG_CTL;

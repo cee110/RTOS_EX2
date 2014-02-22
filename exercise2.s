@@ -1,1537 +1,249 @@
-	.file	"exercise2.c"
-	.text
-Ltext0:
-	.comm	_g_ui32Flags, 4, 2
-	.globl	_current_time
-	.bss
-	.align 4
-_current_time:
-	.space 4
-	.globl	_systick_period
-	.section .rdata,"dr"
-	.align 4
-_systick_period:
-	.long	6550
-	.data
-	.align 4
-_uiConfig:
-	.long	10
-	.long	1
-	.long	0
-	.long	0
-	.text
-	.globl	_ConfigureUART
-	.def	_ConfigureUART;	.scl	2;	.type	32;	.endef
-_ConfigureUART:
-LFB6:
-	.file 1 "exercise2.c"
-	.loc 1 121 0
-	.cfi_startproc
-	pushl	%ebp
-	.cfi_def_cfa_offset 8
-	.cfi_offset 5, -8
-	movl	%esp, %ebp
-	.cfi_def_cfa_register 5
-	subl	$24, %esp
-	.loc 1 125 0
-	movl	$-268433408, (%esp)
-	call	_ROM_SysCtlPeripheralEnable
-	.loc 1 130 0
-	movl	$-268429312, (%esp)
-	call	_ROM_SysCtlPeripheralEnable
-	.loc 1 135 0
-	movl	$1, (%esp)
-	call	_ROM_GPIOPinConfigure
-	.loc 1 136 0
-	movl	$1025, (%esp)
-	call	_ROM_GPIOPinConfigure
-	.loc 1 137 0
-	movl	$3, 4(%esp)
-	movl	$1073758208, (%esp)
-	call	_ROM_GPIOPinTypeUART
-	.loc 1 142 0
-	movl	$5, 4(%esp)
-	movl	$1073790976, (%esp)
-	call	_UARTClockSourceSet
-	.loc 1 147 0
-	movl	$16000000, 8(%esp)
-	movl	$115200, 4(%esp)
-	movl	$0, (%esp)
-	call	_UARTStdioConfig
-	.loc 1 148 0
-	leave
-	.cfi_restore 5
-	.cfi_def_cfa 4, 4
-	ret
-	.cfi_endproc
-LFE6:
-	.globl	_SysTickIntHandler
-	.def	_SysTickIntHandler;	.scl	2;	.type	32;	.endef
-_SysTickIntHandler:
-LFB7:
-	.loc 1 156 0
-	.cfi_startproc
-	pushl	%ebp
-	.cfi_def_cfa_offset 8
-	.cfi_offset 5, -8
-	movl	%esp, %ebp
-	.cfi_def_cfa_register 5
-	subl	$8, %esp
-	.loc 1 157 0
-	call	_ROM_IntMasterDisable
-	.loc 1 158 0
-	movl	$-536813552, %eax
-	movl	(%eax), %eax
-	.loc 1 159 0
-	movl	_current_time, %eax
-	addl	$1, %eax
-	movl	%eax, _current_time
-	.loc 1 160 0
-	call	_ROM_IntMasterEnable
-	.loc 1 161 0
-	leave
-	.cfi_restore 5
-	.cfi_def_cfa 4, 4
-	ret
-	.cfi_endproc
-LFE7:
-	.globl	_Timer0IntHandler
-	.def	_Timer0IntHandler;	.scl	2;	.type	32;	.endef
-_Timer0IntHandler:
-LFB8:
-	.loc 1 170 0
-	.cfi_startproc
-	pushl	%ebp
-	.cfi_def_cfa_offset 8
-	.cfi_offset 5, -8
-	movl	%esp, %ebp
-	.cfi_def_cfa_register 5
-	subl	$24, %esp
-	.loc 1 174 0
-	movl	$1, 4(%esp)
-	movl	$1073938432, (%esp)
-	call	_ROM_TimerIntClear
-	.loc 1 178 0
-	movl	$_g_ui32Flags, %eax
-	andl	$1048575, %eax
-	sall	$5, %eax
-	movl	%eax, %edx
-	movl	$_g_ui32Flags, %eax
-	andl	$-268435456, %eax
-	orl	$33554432, %eax
-	orl	%edx, %eax
-	movl	$_g_ui32Flags, %edx
-	andl	$1048575, %edx
-	movl	%edx, %ecx
-	sall	$5, %ecx
-	movl	$_g_ui32Flags, %edx
-	andl	$-268435456, %edx
-	orl	$33554432, %edx
-	orl	%ecx, %edx
-	movl	(%edx), %edx
-	xorl	$1, %edx
-	movl	%edx, (%eax)
-	.loc 1 179 0
-	leave
-	.cfi_restore 5
-	.cfi_def_cfa 4, 4
-	ret
-	.cfi_endproc
-LFE8:
-	.globl	_Timer1IntHandler
-	.def	_Timer1IntHandler;	.scl	2;	.type	32;	.endef
-_Timer1IntHandler:
-LFB9:
-	.loc 1 188 0
-	.cfi_startproc
-	pushl	%ebp
-	.cfi_def_cfa_offset 8
-	.cfi_offset 5, -8
-	movl	%esp, %ebp
-	.cfi_def_cfa_register 5
-	subl	$24, %esp
-	.loc 1 192 0
-	movl	$1, 4(%esp)
-	movl	$1073942528, (%esp)
-	call	_ROM_TimerIntClear
-	.loc 1 196 0
-	movl	$_g_ui32Flags, %eax
-	andl	$1048575, %eax
-	sall	$5, %eax
-	movl	%eax, %edx
-	movl	$_g_ui32Flags, %eax
-	andl	$-268435456, %eax
-	orl	$33554436, %eax
-	orl	%edx, %eax
-	movl	$_g_ui32Flags, %edx
-	andl	$1048575, %edx
-	movl	%edx, %ecx
-	sall	$5, %ecx
-	movl	$_g_ui32Flags, %edx
-	andl	$-268435456, %edx
-	orl	$33554436, %edx
-	orl	%ecx, %edx
-	movl	(%edx), %edx
-	xorl	$1, %edx
-	movl	%edx, (%eax)
-	.loc 1 198 0
-	leave
-	.cfi_restore 5
-	.cfi_def_cfa 4, 4
-	ret
-	.cfi_endproc
-LFE9:
-	.globl	_ConfigSysTick
-	.def	_ConfigSysTick;	.scl	2;	.type	32;	.endef
-_ConfigSysTick:
-LFB10:
-	.loc 1 207 0
-	.cfi_startproc
-	pushl	%ebp
-	.cfi_def_cfa_offset 8
-	.cfi_offset 5, -8
-	movl	%esp, %ebp
-	.cfi_def_cfa_register 5
-	subl	$24, %esp
-	.loc 1 211 0
-	movl	$_SysTickIntHandler, (%esp)
-	call	_SysTickIntRegister
-	.loc 1 214 0
-	movl	$96, 4(%esp)
-	movl	$15, (%esp)
-	call	_IntPrioritySet
-	.loc 1 219 0
-	call	_SysCtlClockGet
-	movl	$1374389535, %edx
-	mull	%edx
-	movl	%edx, %eax
-	shrl	$5, %eax
-	movl	%eax, (%esp)
-	call	_SysTickPeriodSet
-	.loc 1 224 0
-	call	_IntMasterEnable
-	.loc 1 229 0
-	call	_SysTickIntEnable
-	.loc 1 234 0
-	call	_SysTickEnable
-	.loc 1 235 0
-	leave
-	.cfi_restore 5
-	.cfi_def_cfa 4, 4
-	ret
-	.cfi_endproc
-LFE10:
-	.def	___main;	.scl	2;	.type	32;	.endef
-	.globl	_main
-	.def	_main;	.scl	2;	.type	32;	.endef
-_main:
-LFB11:
-	.loc 1 245 0
-	.cfi_startproc
-	pushl	%ebp
-	.cfi_def_cfa_offset 8
-	.cfi_offset 5, -8
-	movl	%esp, %ebp
-	.cfi_def_cfa_register 5
-	andl	$-16, %esp
-	subl	$16, %esp
-	.loc 1 245 0
-	call	___main
-	.loc 1 251 0
-	movl	$29361472, (%esp)
-	call	_ROM_SysCtlClockSet
-	.loc 1 257 0
-	call	_ConfigureUART
-	.loc 1 259 0
-	call	_CFAL96x64x16Init
-	.loc 1 260 0
-	call	_ButtonsInit
-	.loc 1 265 0
-	movl	$_g_sCFAL96x64x16, 4(%esp)
-	movl	$_sDisplayContext.3260, (%esp)
-	call	_GrContextInit
-	.loc 1 268 0
-	movl	$0, _uiConfig+12
-	.loc 1 270 0
-	movl	$_sDisplayContext.3260, (%esp)
-	call	_vInitUI
-L8:
-	.loc 1 274 0
-	movl	$_uiConfig, 4(%esp)
-	movl	$_sDisplayContext.3260, (%esp)
-	call	_vPollSBoxButton
-	.loc 1 275 0
-	movl	_uiConfig+12, %eax
-	cmpl	$1, %eax
-	jne	L7
-	.loc 1 276 0
-	movl	$_uiConfig, 4(%esp)
-	movl	$_sDisplayContext.3260, (%esp)
-	call	_AcquireMain
-	.loc 1 279 0
-	jmp	L8
-L7:
-	jmp	L8
-	.cfi_endproc
-LFE11:
-.lcomm _sDisplayContext.3260,44,32
-Letext0:
-	.file 2 "/usr/include/stdint.h"
-	.file 3 "../../../../grlib/grlib.h"
-	.file 4 "uicontrol.h"
-	.file 5 "../drivers/cfal96x64x16.h"
-	.section	.debug_info,"dr"
-Ldebug_info0:
-	.long	0x987
-	.word	0x4
-	.secrel32	Ldebug_abbrev0
-	.byte	0x4
-	.uleb128 0x1
-	.ascii "GNU C 4.8.2 -mtune=generic -march=i686 -g -std=c99\0"
-	.byte	0x1
-	.ascii "exercise2.c\0"
-	.ascii "/cygdrive/c/emsys/TivaC1157/examples/boards/ek-lm4f232/exercise2\0"
-	.long	Ltext0
-	.long	Letext0-Ltext0
-	.secrel32	Ldebug_line0
-	.uleb128 0x2
-	.byte	0x1
-	.byte	0x6
-	.ascii "signed char\0"
-	.uleb128 0x3
-	.ascii "int16_t\0"
-	.byte	0x2
-	.byte	0x15
-	.long	0xb7
-	.uleb128 0x2
-	.byte	0x2
-	.byte	0x5
-	.ascii "short int\0"
-	.uleb128 0x3
-	.ascii "int32_t\0"
-	.byte	0x2
-	.byte	0x16
-	.long	0xd3
-	.uleb128 0x2
-	.byte	0x4
-	.byte	0x5
-	.ascii "int\0"
-	.uleb128 0x2
-	.byte	0x8
-	.byte	0x5
-	.ascii "long long int\0"
-	.uleb128 0x3
-	.ascii "uint8_t\0"
-	.byte	0x2
-	.byte	0x1e
-	.long	0xfa
-	.uleb128 0x2
-	.byte	0x1
-	.byte	0x8
-	.ascii "unsigned char\0"
-	.uleb128 0x3
-	.ascii "uint16_t\0"
-	.byte	0x2
-	.byte	0x1f
-	.long	0x11b
-	.uleb128 0x2
-	.byte	0x2
-	.byte	0x7
-	.ascii "short unsigned int\0"
-	.uleb128 0x3
-	.ascii "uint32_t\0"
-	.byte	0x2
-	.byte	0x22
-	.long	0x141
-	.uleb128 0x2
-	.byte	0x4
-	.byte	0x7
-	.ascii "unsigned int\0"
-	.uleb128 0x2
-	.byte	0x8
-	.byte	0x7
-	.ascii "long long unsigned int\0"
-	.uleb128 0x4
-	.byte	0x8
-	.byte	0x3
-	.byte	0x36
-	.long	0x1b4
-	.uleb128 0x5
-	.ascii "i16XMin\0"
-	.byte	0x3
-	.byte	0x3b
-	.long	0xa8
-	.byte	0
-	.uleb128 0x5
-	.ascii "i16YMin\0"
-	.byte	0x3
-	.byte	0x40
-	.long	0xa8
-	.byte	0x2
-	.uleb128 0x5
-	.ascii "i16XMax\0"
-	.byte	0x3
-	.byte	0x45
-	.long	0xa8
-	.byte	0x4
-	.uleb128 0x5
-	.ascii "i16YMax\0"
-	.byte	0x3
-	.byte	0x4a
-	.long	0xa8
-	.byte	0x6
-	.byte	0
-	.uleb128 0x3
-	.ascii "tRectangle\0"
-	.byte	0x3
-	.byte	0x4c
-	.long	0x16b
-	.uleb128 0x4
-	.byte	0x28
-	.byte	0x3
-	.byte	0x53
-	.long	0x2b5
-	.uleb128 0x5
-	.ascii "i32Size\0"
-	.byte	0x3
-	.byte	0x58
-	.long	0xc4
-	.byte	0
-	.uleb128 0x5
-	.ascii "pvDisplayData\0"
-	.byte	0x3
-	.byte	0x5d
-	.long	0x2b5
-	.byte	0x4
-	.uleb128 0x5
-	.ascii "ui16Width\0"
-	.byte	0x3
-	.byte	0x62
-	.long	0x10b
-	.byte	0x8
-	.uleb128 0x5
-	.ascii "ui16Height\0"
-	.byte	0x3
-	.byte	0x67
-	.long	0x10b
-	.byte	0xa
-	.uleb128 0x5
-	.ascii "pfnPixelDraw\0"
-	.byte	0x3
-	.byte	0x6c
-	.long	0x2d1
-	.byte	0xc
-	.uleb128 0x5
-	.ascii "pfnPixelDrawMultiple\0"
-	.byte	0x3
-	.byte	0x75
-	.long	0x310
-	.byte	0x10
-	.uleb128 0x5
-	.ascii "pfnLineDrawH\0"
-	.byte	0x3
-	.byte	0x7e
-	.long	0x335
-	.byte	0x14
-	.uleb128 0x5
-	.ascii "pfnLineDrawV\0"
-	.byte	0x3
-	.byte	0x84
-	.long	0x335
-	.byte	0x18
-	.uleb128 0x5
-	.ascii "pfnRectFill\0"
-	.byte	0x3
-	.byte	0x8a
-	.long	0x35b
-	.byte	0x1c
-	.uleb128 0x5
-	.ascii "pfnColorTranslate\0"
-	.byte	0x3
-	.byte	0x91
-	.long	0x375
-	.byte	0x20
-	.uleb128 0x5
-	.ascii "pfnFlush\0"
-	.byte	0x3
-	.byte	0x97
-	.long	0x386
-	.byte	0x24
-	.byte	0
-	.uleb128 0x6
-	.byte	0x4
-	.uleb128 0x7
-	.long	0x2d1
-	.uleb128 0x8
-	.long	0x2b5
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0x131
-	.byte	0
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x2b7
-	.uleb128 0x7
-	.long	0x305
-	.uleb128 0x8
-	.long	0x2b5
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0x305
-	.uleb128 0x8
-	.long	0x305
-	.byte	0
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x30b
-	.uleb128 0xa
-	.long	0xeb
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x2d7
-	.uleb128 0x7
-	.long	0x335
-	.uleb128 0x8
-	.long	0x2b5
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0x131
-	.byte	0
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x316
-	.uleb128 0x7
-	.long	0x350
-	.uleb128 0x8
-	.long	0x2b5
-	.uleb128 0x8
-	.long	0x350
-	.uleb128 0x8
-	.long	0x131
-	.byte	0
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x356
-	.uleb128 0xa
-	.long	0x1b4
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x33b
-	.uleb128 0xb
-	.long	0x131
-	.long	0x375
-	.uleb128 0x8
-	.long	0x2b5
-	.uleb128 0x8
-	.long	0x131
-	.byte	0
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x361
-	.uleb128 0x7
-	.long	0x386
-	.uleb128 0x8
-	.long	0x2b5
-	.byte	0
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x37b
-	.uleb128 0x3
-	.ascii "tDisplay\0"
-	.byte	0x3
-	.byte	0x99
-	.long	0x1c6
-	.uleb128 0x4
-	.byte	0xc8
-	.byte	0x3
-	.byte	0xae
-	.long	0x416
-	.uleb128 0x5
-	.ascii "ui8Format\0"
-	.byte	0x3
-	.byte	0xb4
-	.long	0xeb
-	.byte	0
-	.uleb128 0x5
-	.ascii "ui8MaxWidth\0"
-	.byte	0x3
-	.byte	0xbb
-	.long	0xeb
-	.byte	0x1
-	.uleb128 0x5
-	.ascii "ui8Height\0"
-	.byte	0x3
-	.byte	0xc1
-	.long	0xeb
-	.byte	0x2
-	.uleb128 0x5
-	.ascii "ui8Baseline\0"
-	.byte	0x3
-	.byte	0xc8
-	.long	0xeb
-	.byte	0x3
-	.uleb128 0x5
-	.ascii "pui16Offset\0"
-	.byte	0x3
-	.byte	0xcd
-	.long	0x416
-	.byte	0x4
-	.uleb128 0x5
-	.ascii "pui8Data\0"
-	.byte	0x3
-	.byte	0xd2
-	.long	0x305
-	.byte	0xc4
-	.byte	0
-	.uleb128 0xc
-	.long	0x10b
-	.long	0x426
-	.uleb128 0xd
-	.long	0x426
-	.byte	0x5f
-	.byte	0
-	.uleb128 0x2
-	.byte	0x4
-	.byte	0x7
-	.ascii "sizetype\0"
-	.uleb128 0x3
-	.ascii "tFont\0"
-	.byte	0x3
-	.byte	0xd4
-	.long	0x39c
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x131
-	.uleb128 0xe
-	.byte	0x8
-	.byte	0x3
-	.word	0x2e2
-	.long	0x496
-	.uleb128 0xf
-	.ascii "ui16SrcCodepage\0"
-	.byte	0x3
-	.word	0x2e7
-	.long	0x10b
-	.byte	0
-	.uleb128 0xf
-	.ascii "ui16FontCodepage\0"
-	.byte	0x3
-	.word	0x2ec
-	.long	0x10b
-	.byte	0x2
-	.uleb128 0xf
-	.ascii "pfnMapChar\0"
-	.byte	0x3
-	.word	0x2f2
-	.long	0x4c2
-	.byte	0x4
-	.byte	0
-	.uleb128 0xb
-	.long	0x131
-	.long	0x4af
-	.uleb128 0x8
-	.long	0x4af
-	.uleb128 0x8
-	.long	0x131
-	.uleb128 0x8
-	.long	0x43f
-	.byte	0
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x4b5
-	.uleb128 0xa
-	.long	0x4ba
-	.uleb128 0x2
-	.byte	0x1
-	.byte	0x6
-	.ascii "char\0"
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x496
-	.uleb128 0x10
-	.ascii "tCodePointMap\0"
-	.byte	0x3
-	.word	0x2f5
-	.long	0x445
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x4e4
-	.uleb128 0x7
-	.long	0x508
-	.uleb128 0x8
-	.long	0x508
-	.uleb128 0x8
-	.long	0x4af
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0xc4
-	.uleb128 0x8
-	.long	0x638
-	.byte	0
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x50e
-	.uleb128 0xa
-	.long	0x513
-	.uleb128 0x11
-	.ascii "_tContext\0"
-	.byte	0x2c
-	.byte	0x3
-	.word	0x33f
-	.long	0x638
-	.uleb128 0xf
-	.ascii "i32Size\0"
-	.byte	0x3
-	.word	0x345
-	.long	0xc4
-	.byte	0
-	.uleb128 0xf
-	.ascii "psDisplay\0"
-	.byte	0x3
-	.word	0x34a
-	.long	0x641
-	.byte	0x4
-	.uleb128 0xf
-	.ascii "sClipRegion\0"
-	.byte	0x3
-	.word	0x34f
-	.long	0x1b4
-	.byte	0x8
-	.uleb128 0xf
-	.ascii "ui32Foreground\0"
-	.byte	0x3
-	.word	0x354
-	.long	0x131
-	.byte	0x10
-	.uleb128 0xf
-	.ascii "ui32Background\0"
-	.byte	0x3
-	.word	0x359
-	.long	0x131
-	.byte	0x14
-	.uleb128 0xf
-	.ascii "psFont\0"
-	.byte	0x3
-	.word	0x35e
-	.long	0x64c
-	.byte	0x18
-	.uleb128 0xf
-	.ascii "pfnStringRenderer\0"
-	.byte	0x3
-	.word	0x366
-	.long	0x4de
-	.byte	0x1c
-	.uleb128 0xf
-	.ascii "pCodePointMapTable\0"
-	.byte	0x3
-	.word	0x36d
-	.long	0x657
-	.byte	0x20
-	.uleb128 0xf
-	.ascii "ui16Codepage\0"
-	.byte	0x3
-	.word	0x372
-	.long	0x10b
-	.byte	0x24
-	.uleb128 0xf
-	.ascii "ui8NumCodePointMaps\0"
-	.byte	0x3
-	.word	0x377
-	.long	0xeb
-	.byte	0x26
-	.uleb128 0xf
-	.ascii "ui8CodePointMap\0"
-	.byte	0x3
-	.word	0x37d
-	.long	0xeb
-	.byte	0x27
-	.uleb128 0xf
-	.ascii "ui8Reserved\0"
-	.byte	0x3
-	.word	0x382
-	.long	0xeb
-	.byte	0x28
-	.byte	0
-	.uleb128 0x2
-	.byte	0x1
-	.byte	0x2
-	.ascii "_Bool\0"
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x647
-	.uleb128 0xa
-	.long	0x38c
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x652
-	.uleb128 0xa
-	.long	0x432
-	.uleb128 0x9
-	.byte	0x4
-	.long	0x65d
-	.uleb128 0xa
-	.long	0x4c8
-	.uleb128 0x10
-	.ascii "tContext\0"
-	.byte	0x3
-	.word	0x385
-	.long	0x513
-	.uleb128 0x2
-	.byte	0x4
-	.byte	0x5
-	.ascii "long int\0"
-	.uleb128 0x2
-	.byte	0x4
-	.byte	0x7
-	.ascii "long unsigned int\0"
-	.uleb128 0x12
-	.byte	0x4
-	.byte	0x4
-	.byte	0x24
-	.long	0x6ae
-	.uleb128 0x13
-	.ascii "idle\0"
-	.sleb128 0
-	.uleb128 0x13
-	.ascii "logging\0"
-	.sleb128 1
-	.byte	0
-	.uleb128 0x3
-	.ascii "uiState_t\0"
-	.byte	0x4
-	.byte	0x24
-	.long	0x694
-	.uleb128 0x14
-	.secrel32	LASF0
-	.byte	0x4
-	.byte	0x4
-	.byte	0x25
-	.long	0x6dc
-	.uleb128 0x13
-	.ascii "ACCEL\0"
-	.sleb128 0
-	.uleb128 0x13
-	.ascii "VOLTS\0"
-	.sleb128 1
-	.byte	0
-	.uleb128 0x15
-	.secrel32	LASF0
-	.byte	0x4
-	.byte	0x25
-	.long	0x6bf
-	.uleb128 0x16
-	.ascii "tsOpt\0"
-	.byte	0x10
-	.byte	0x4
-	.byte	0x27
-	.long	0x73a
-	.uleb128 0x5
-	.ascii "freq\0"
-	.byte	0x4
-	.byte	0x29
-	.long	0x131
-	.byte	0
-	.uleb128 0x5
-	.ascii "sample_size\0"
-	.byte	0x4
-	.byte	0x2a
-	.long	0x131
-	.byte	0x4
-	.uleb128 0x5
-	.ascii "channelOpt\0"
-	.byte	0x4
-	.byte	0x2b
-	.long	0x6dc
-	.byte	0x8
-	.uleb128 0x5
-	.ascii "uiState\0"
-	.byte	0x4
-	.byte	0x2c
-	.long	0x6ae
-	.byte	0xc
-	.byte	0
-	.uleb128 0x3
-	.ascii "tuiConfig\0"
-	.byte	0x4
-	.byte	0x2d
-	.long	0x6e7
-	.uleb128 0x17
-	.ascii "ConfigureUART\0"
-	.byte	0x1
-	.byte	0x78
-	.long	LFB6
-	.long	LFE6-LFB6
-	.uleb128 0x1
-	.byte	0x9c
-	.long	0x7d2
-	.uleb128 0x18
-	.ascii "ROM_SysCtlPeripheralEnable\0"
-	.byte	0x1
-	.byte	0x7d
-	.long	0xd3
-	.long	0x792
-	.uleb128 0x19
-	.byte	0
-	.uleb128 0x18
-	.ascii "ROM_GPIOPinConfigure\0"
-	.byte	0x1
-	.byte	0x87
-	.long	0xd3
-	.long	0x7b4
-	.uleb128 0x19
-	.byte	0
-	.uleb128 0x1a
-	.ascii "ROM_GPIOPinTypeUART\0"
-	.byte	0x1
-	.byte	0x89
-	.long	0xd3
-	.uleb128 0x19
-	.byte	0
-	.byte	0
-	.uleb128 0x17
-	.ascii "SysTickIntHandler\0"
-	.byte	0x1
-	.byte	0x9b
-	.long	LFB7
-	.long	LFE7-LFB7
-	.uleb128 0x1
-	.byte	0x9c
-	.long	0x835
-	.uleb128 0x18
-	.ascii "ROM_IntMasterDisable\0"
-	.byte	0x1
-	.byte	0x9d
-	.long	0xd3
-	.long	0x817
-	.uleb128 0x19
-	.byte	0
-	.uleb128 0x1a
-	.ascii "ROM_IntMasterEnable\0"
-	.byte	0x1
-	.byte	0xa0
-	.long	0xd3
-	.uleb128 0x19
-	.byte	0
-	.byte	0
-	.uleb128 0x17
-	.ascii "Timer0IntHandler\0"
-	.byte	0x1
-	.byte	0xa9
-	.long	LFB8
-	.long	LFE8-LFB8
-	.uleb128 0x1
-	.byte	0x9c
-	.long	0x865
-	.uleb128 0x1b
-	.secrel32	LASF1
-	.byte	0x1
-	.byte	0xae
-	.long	0xd3
-	.uleb128 0x19
-	.byte	0
-	.byte	0
-	.uleb128 0x17
-	.ascii "Timer1IntHandler\0"
-	.byte	0x1
-	.byte	0xbb
-	.long	LFB9
-	.long	LFE9-LFB9
-	.uleb128 0x1
-	.byte	0x9c
-	.long	0x895
-	.uleb128 0x1b
-	.secrel32	LASF1
-	.byte	0x1
-	.byte	0xae
-	.long	0xd3
-	.uleb128 0x19
-	.byte	0
-	.byte	0
-	.uleb128 0x1c
-	.ascii "ConfigSysTick\0"
-	.byte	0x1
-	.byte	0xcf
-	.long	LFB10
-	.long	LFE10-LFB10
-	.uleb128 0x1
-	.byte	0x9c
-	.uleb128 0x1d
-	.ascii "main\0"
-	.byte	0x1
-	.byte	0xf4
-	.long	0xd3
-	.long	LFB11
-	.long	LFE11-LFB11
-	.uleb128 0x1
-	.byte	0x9c
-	.long	0x904
-	.uleb128 0x1e
-	.ascii "sDisplayContext\0"
-	.byte	0x1
-	.byte	0xf7
-	.long	0x662
-	.uleb128 0x5
-	.byte	0x3
-	.long	_sDisplayContext.3260
-	.uleb128 0x1a
-	.ascii "ROM_SysCtlClockSet\0"
-	.byte	0x1
-	.byte	0xfb
-	.long	0xd3
-	.uleb128 0x19
-	.byte	0
-	.byte	0
-	.uleb128 0x1e
-	.ascii "uiConfig\0"
-	.byte	0x1
-	.byte	0x70
-	.long	0x73a
-	.uleb128 0x5
-	.byte	0x3
-	.long	_uiConfig
-	.uleb128 0x1f
-	.ascii "g_sCFAL96x64x16\0"
-	.byte	0x5
-	.byte	0x23
-	.long	0x647
-	.uleb128 0x20
-	.ascii "g_ui32Flags\0"
-	.byte	0x1
-	.byte	0x5c
-	.long	0x131
-	.uleb128 0x5
-	.byte	0x3
-	.long	_g_ui32Flags
-	.uleb128 0x20
-	.ascii "current_time\0"
-	.byte	0x1
-	.byte	0x62
-	.long	0x964
-	.uleb128 0x5
-	.byte	0x3
-	.long	_current_time
-	.uleb128 0x21
-	.long	0x131
-	.uleb128 0x20
-	.ascii "systick_period\0"
-	.byte	0x1
-	.byte	0x69
-	.long	0x985
-	.uleb128 0x5
-	.byte	0x3
-	.long	_systick_period
-	.uleb128 0xa
-	.long	0x131
-	.byte	0
-	.section	.debug_abbrev,"dr"
-Ldebug_abbrev0:
-	.uleb128 0x1
-	.uleb128 0x11
-	.byte	0x1
-	.uleb128 0x25
-	.uleb128 0x8
-	.uleb128 0x13
-	.uleb128 0xb
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x1b
-	.uleb128 0x8
-	.uleb128 0x11
-	.uleb128 0x1
-	.uleb128 0x12
-	.uleb128 0x6
-	.uleb128 0x10
-	.uleb128 0x17
-	.byte	0
-	.byte	0
-	.uleb128 0x2
-	.uleb128 0x24
-	.byte	0
-	.uleb128 0xb
-	.uleb128 0xb
-	.uleb128 0x3e
-	.uleb128 0xb
-	.uleb128 0x3
-	.uleb128 0x8
-	.byte	0
-	.byte	0
-	.uleb128 0x3
-	.uleb128 0x16
-	.byte	0
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x49
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x4
-	.uleb128 0x13
-	.byte	0x1
-	.uleb128 0xb
-	.uleb128 0xb
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x1
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x5
-	.uleb128 0xd
-	.byte	0
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x49
-	.uleb128 0x13
-	.uleb128 0x38
-	.uleb128 0xb
-	.byte	0
-	.byte	0
-	.uleb128 0x6
-	.uleb128 0xf
-	.byte	0
-	.uleb128 0xb
-	.uleb128 0xb
-	.byte	0
-	.byte	0
-	.uleb128 0x7
-	.uleb128 0x15
-	.byte	0x1
-	.uleb128 0x27
-	.uleb128 0x19
-	.uleb128 0x1
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x8
-	.uleb128 0x5
-	.byte	0
-	.uleb128 0x49
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x9
-	.uleb128 0xf
-	.byte	0
-	.uleb128 0xb
-	.uleb128 0xb
-	.uleb128 0x49
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0xa
-	.uleb128 0x26
-	.byte	0
-	.uleb128 0x49
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0xb
-	.uleb128 0x15
-	.byte	0x1
-	.uleb128 0x27
-	.uleb128 0x19
-	.uleb128 0x49
-	.uleb128 0x13
-	.uleb128 0x1
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0xc
-	.uleb128 0x1
-	.byte	0x1
-	.uleb128 0x49
-	.uleb128 0x13
-	.uleb128 0x1
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0xd
-	.uleb128 0x21
-	.byte	0
-	.uleb128 0x49
-	.uleb128 0x13
-	.uleb128 0x2f
-	.uleb128 0xb
-	.byte	0
-	.byte	0
-	.uleb128 0xe
-	.uleb128 0x13
-	.byte	0x1
-	.uleb128 0xb
-	.uleb128 0xb
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0x5
-	.uleb128 0x1
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0xf
-	.uleb128 0xd
-	.byte	0
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0x5
-	.uleb128 0x49
-	.uleb128 0x13
-	.uleb128 0x38
-	.uleb128 0xb
-	.byte	0
-	.byte	0
-	.uleb128 0x10
-	.uleb128 0x16
-	.byte	0
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0x5
-	.uleb128 0x49
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x11
-	.uleb128 0x13
-	.byte	0x1
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0xb
-	.uleb128 0xb
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0x5
-	.uleb128 0x1
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x12
-	.uleb128 0x4
-	.byte	0x1
-	.uleb128 0xb
-	.uleb128 0xb
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x1
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x13
-	.uleb128 0x28
-	.byte	0
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x1c
-	.uleb128 0xd
-	.byte	0
-	.byte	0
-	.uleb128 0x14
-	.uleb128 0x4
-	.byte	0x1
-	.uleb128 0x3
-	.uleb128 0xe
-	.uleb128 0xb
-	.uleb128 0xb
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x1
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x15
-	.uleb128 0x16
-	.byte	0
-	.uleb128 0x3
-	.uleb128 0xe
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x49
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x16
-	.uleb128 0x13
-	.byte	0x1
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0xb
-	.uleb128 0xb
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x1
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x17
-	.uleb128 0x2e
-	.byte	0x1
-	.uleb128 0x3f
-	.uleb128 0x19
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x27
-	.uleb128 0x19
-	.uleb128 0x11
-	.uleb128 0x1
-	.uleb128 0x12
-	.uleb128 0x6
-	.uleb128 0x40
-	.uleb128 0x18
-	.uleb128 0x2116
-	.uleb128 0x19
-	.uleb128 0x1
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x18
-	.uleb128 0x2e
-	.byte	0x1
-	.uleb128 0x3f
-	.uleb128 0x19
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x49
-	.uleb128 0x13
-	.uleb128 0x3c
-	.uleb128 0x19
-	.uleb128 0x1
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x19
-	.uleb128 0x18
-	.byte	0
-	.byte	0
-	.byte	0
-	.uleb128 0x1a
-	.uleb128 0x2e
-	.byte	0x1
-	.uleb128 0x3f
-	.uleb128 0x19
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x49
-	.uleb128 0x13
-	.uleb128 0x3c
-	.uleb128 0x19
-	.byte	0
-	.byte	0
-	.uleb128 0x1b
-	.uleb128 0x2e
-	.byte	0x1
-	.uleb128 0x3f
-	.uleb128 0x19
-	.uleb128 0x3
-	.uleb128 0xe
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x49
-	.uleb128 0x13
-	.uleb128 0x3c
-	.uleb128 0x19
-	.byte	0
-	.byte	0
-	.uleb128 0x1c
-	.uleb128 0x2e
-	.byte	0
-	.uleb128 0x3f
-	.uleb128 0x19
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x11
-	.uleb128 0x1
-	.uleb128 0x12
-	.uleb128 0x6
-	.uleb128 0x40
-	.uleb128 0x18
-	.uleb128 0x2116
-	.uleb128 0x19
-	.byte	0
-	.byte	0
-	.uleb128 0x1d
-	.uleb128 0x2e
-	.byte	0x1
-	.uleb128 0x3f
-	.uleb128 0x19
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x27
-	.uleb128 0x19
-	.uleb128 0x49
-	.uleb128 0x13
-	.uleb128 0x11
-	.uleb128 0x1
-	.uleb128 0x12
-	.uleb128 0x6
-	.uleb128 0x40
-	.uleb128 0x18
-	.uleb128 0x2116
-	.uleb128 0x19
-	.uleb128 0x1
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.uleb128 0x1e
-	.uleb128 0x34
-	.byte	0
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x49
-	.uleb128 0x13
-	.uleb128 0x2
-	.uleb128 0x18
-	.byte	0
-	.byte	0
-	.uleb128 0x1f
-	.uleb128 0x34
-	.byte	0
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x49
-	.uleb128 0x13
-	.uleb128 0x3f
-	.uleb128 0x19
-	.uleb128 0x3c
-	.uleb128 0x19
-	.byte	0
-	.byte	0
-	.uleb128 0x20
-	.uleb128 0x34
-	.byte	0
-	.uleb128 0x3
-	.uleb128 0x8
-	.uleb128 0x3a
-	.uleb128 0xb
-	.uleb128 0x3b
-	.uleb128 0xb
-	.uleb128 0x49
-	.uleb128 0x13
-	.uleb128 0x3f
-	.uleb128 0x19
-	.uleb128 0x2
-	.uleb128 0x18
-	.byte	0
-	.byte	0
-	.uleb128 0x21
-	.uleb128 0x35
-	.byte	0
-	.uleb128 0x49
-	.uleb128 0x13
-	.byte	0
-	.byte	0
-	.byte	0
-	.section	.debug_aranges,"dr"
-	.long	0x1c
-	.word	0x2
-	.secrel32	Ldebug_info0
-	.byte	0x4
-	.byte	0
-	.word	0
-	.word	0
-	.long	Ltext0
-	.long	Letext0-Ltext0
-	.long	0
-	.long	0
-	.section	.debug_line,"dr"
-Ldebug_line0:
-	.section	.debug_str,"dr"
-LASF1:
-	.ascii "ROM_TimerIntClear\0"
-LASF0:
-	.ascii "channel_enum\0"
-	.ident	"GCC: (GNU) 4.8.2"
-	.def	_ROM_SysCtlPeripheralEnable;	.scl	2;	.type	32;	.endef
-	.def	_ROM_GPIOPinConfigure;	.scl	2;	.type	32;	.endef
-	.def	_ROM_GPIOPinTypeUART;	.scl	2;	.type	32;	.endef
-	.def	_UARTClockSourceSet;	.scl	2;	.type	32;	.endef
-	.def	_UARTStdioConfig;	.scl	2;	.type	32;	.endef
-	.def	_ROM_IntMasterDisable;	.scl	2;	.type	32;	.endef
-	.def	_ROM_IntMasterEnable;	.scl	2;	.type	32;	.endef
-	.def	_ROM_TimerIntClear;	.scl	2;	.type	32;	.endef
-	.def	_SysTickIntRegister;	.scl	2;	.type	32;	.endef
-	.def	_IntPrioritySet;	.scl	2;	.type	32;	.endef
-	.def	_SysCtlClockGet;	.scl	2;	.type	32;	.endef
-	.def	_SysTickPeriodSet;	.scl	2;	.type	32;	.endef
-	.def	_IntMasterEnable;	.scl	2;	.type	32;	.endef
-	.def	_SysTickIntEnable;	.scl	2;	.type	32;	.endef
-	.def	_SysTickEnable;	.scl	2;	.type	32;	.endef
-	.def	_ROM_SysCtlClockSet;	.scl	2;	.type	32;	.endef
-	.def	_CFAL96x64x16Init;	.scl	2;	.type	32;	.endef
-	.def	_ButtonsInit;	.scl	2;	.type	32;	.endef
-	.def	_GrContextInit;	.scl	2;	.type	32;	.endef
-	.def	_vInitUI;	.scl	2;	.type	32;	.endef
-	.def	_vPollSBoxButton;	.scl	2;	.type	32;	.endef
-	.def	_AcquireMain;	.scl	2;	.type	32;	.endef
+
+gcc/exercise2.o:     file format elf32-little
+
+
+Disassembly of section .text.SysTickIntHandler:
+
+00000000 <$t>:
+$t():
+   0:	10 b5 07 4c 23 68    	adc    BYTE PTR [ebp+0x68234c07],dh
+
+00000001 <SysTickIntHandler>:
+SysTickIntHandler():
+   1:	b5 07                	mov    ch,0x7
+   3:	4c                   	dec    esp
+   4:	23 68 9b             	and    ebp,DWORD PTR [eax-0x65]
+   7:	68 98 47 06 4b       	push   0x4b064798
+   c:	1b 68 06             	sbb    ebp,DWORD PTR [eax+0x6]
+   f:	4b                   	dec    ebx
+  10:	1a 68 01             	sbb    ch,BYTE PTR [eax+0x1]
+  13:	32 1a                	xor    bl,BYTE PTR [edx]
+  15:	60                   	pusha  
+  16:	23 68 5b             	and    ebp,DWORD PTR [eax+0x5b]
+  19:	68 98 47 10 bd       	push   0xbd104798
+  1e:	00 bf 48 00 00 01    	add    BYTE PTR [edi+0x1000048],bh
+
+00000020 <$d>:
+  20:	48                   	dec    eax
+  21:	00 00                	add    BYTE PTR [eax],al
+  23:	01 10                	add    DWORD PTR [eax],edx
+  25:	e0 00                	loopne 27 <$t+0x27>
+  27:	e0 00                	loopne 29 <$t+0x29>
+  29:	00 00                	add    BYTE PTR [eax],al
+	...
+
+Disassembly of section .text.ConfigureUART:
+
+0000002c <$t>:
+$t():
+  2c:	10 b5 13 4c 13 48    	adc    BYTE PTR [ebp+0x48134c13],dh
+
+0000002d <ConfigureUART>:
+ConfigureUART():
+  2d:	b5 13                	mov    ch,0x13
+  2f:	4c                   	dec    esp
+  30:	13 48 23             	adc    ecx,DWORD PTR [eax+0x23]
+  33:	68 9b 69 98 47       	push   0x4798699b
+  38:	23 68 12             	and    ebp,DWORD PTR [eax+0x12]
+  3b:	48                   	dec    eax
+  3c:	9b                   	fwait
+  3d:	69 98 47 54 f8 24 3c 	imul   ebx,DWORD PTR [eax+0x24f85447],0x9b20013c
+  44:	01 20 9b 
+  47:	6e                   	outs   dx,BYTE PTR ds:[esi]
+  48:	98                   	cwde   
+  49:	47                   	inc    edi
+  4a:	54                   	push   esp
+  4b:	f8                   	clc    
+  4c:	24 3c                	and    al,0x3c
+  4e:	40                   	inc    eax
+  4f:	f2 01 40 9b          	repnz add DWORD PTR [eax-0x65],eax
+  53:	6e                   	outs   dx,BYTE PTR ds:[esi]
+  54:	98                   	cwde   
+  55:	47                   	inc    edi
+  56:	54                   	push   esp
+  57:	f8                   	clc    
+  58:	24 3c                	and    al,0x3c
+  5a:	4f                   	dec    edi
+  5b:	f0 40                	lock inc eax
+  5d:	20 5b 6d             	and    BYTE PTR [ebx+0x6d],bl
+  60:	03 21                	add    esp,DWORD PTR [ecx]
+  62:	98                   	cwde   
+  63:	47                   	inc    edi
+  64:	08 48 05             	or     BYTE PTR [eax+0x5],cl
+  67:	21 ff                	and    edi,edi
+  69:	f7 fe                	idiv   esi
+  6b:	ff 00                	inc    DWORD PTR [eax]
+  6d:	20 4f f4             	and    BYTE PTR [edi-0xc],cl
+  70:	e1 31                	loope  a3 <current_time+0xa3>
+  72:	06                   	push   es
+  73:	4a                   	dec    edx
+  74:	bd e8 10 40 ff       	mov    ebp,0xff4010e8
+  79:	f7 fe                	idiv   esi
+  7b:	bf 44 00 00 01       	mov    edi,0x1000044
+
+0000007c <$d>:
+  7c:	44                   	inc    esp
+  7d:	00 00                	add    BYTE PTR [eax],al
+  7f:	01 00                	add    DWORD PTR [eax],eax
+  81:	08 00                	or     BYTE PTR [eax],al
+  83:	f0 00 18             	lock add BYTE PTR [eax],bl
+  86:	00 f0                	add    al,dh
+  88:	00 c0                	add    al,al
+  8a:	00 40 00             	add    BYTE PTR [eax+0x0],al
+  8d:	24 f4                	and    al,0xf4
+	...
+
+Disassembly of section .text.Timer0IntHandler:
+
+000000bc <$t>:
+$t():
+  bc:	08 b5 0a 4b 0a 48    	or     BYTE PTR [ebp+0x480a4b0a],dh
+
+000000bd <Timer0IntHandler>:
+Timer0IntHandler():
+  bd:	b5 0a                	mov    ch,0xa
+  bf:	4b                   	dec    ebx
+  c0:	0a 48 1b             	or     cl,BYTE PTR [eax+0x1b]
+  c3:	68 01 21 1b 68       	push   0x681b2101
+  c8:	98                   	cwde   
+  c9:	47                   	inc    edi
+  ca:	09 4a 02             	or     DWORD PTR [edx+0x2],ecx
+  cd:	f0 70 43             	lock jo 113 <current_time+0x113>
+  d0:	43                   	inc    ebx
+  d1:	f0 00 73 c2          	lock add BYTE PTR [ebx-0x3e],dh
+  d5:	f3 13 02             	repz adc eax,DWORD PTR [edx]
+  d8:	43                   	inc    ebx
+  d9:	ea 42 13 1a 68 82 f0 	jmp    0xf082:0x681a1342
+  e0:	01 02                	add    DWORD PTR [edx],eax
+  e2:	1a 60 08             	sbb    ah,BYTE PTR [eax+0x8]
+  e5:	bd 00 bf 3c 00       	mov    ebp,0x3cbf00
+
+000000e8 <$d>:
+  e8:	3c 00                	cmp    al,0x0
+  ea:	00 01                	add    BYTE PTR [ecx],al
+  ec:	00 00                	add    BYTE PTR [eax],al
+  ee:	03 40 00             	add    eax,DWORD PTR [eax+0x0]
+  f1:	00 00                	add    BYTE PTR [eax],al
+	...
+
+Disassembly of section .text.Timer1IntHandler:
+
+000001b0 <$t>:
+$t():
+ 1b0:	08 b5 0b 4b 0b 48    	or     BYTE PTR [ebp+0x480b4b0b],dh
+
+000001b1 <Timer1IntHandler>:
+Timer1IntHandler():
+ 1b1:	b5 0b                	mov    ch,0xb
+ 1b3:	4b                   	dec    ebx
+ 1b4:	0b 48 1b             	or     ecx,DWORD PTR [eax+0x1b]
+ 1b7:	68 01 21 1b 68       	push   0x681b2101
+ 1bc:	98                   	cwde   
+ 1bd:	47                   	inc    edi
+ 1be:	0a 4a 02             	or     cl,BYTE PTR [edx+0x2]
+ 1c1:	f0 70 43             	lock jo 207 <current_time+0x207>
+ 1c4:	43                   	inc    ebx
+ 1c5:	f0 00 73 c2          	lock add BYTE PTR [ebx-0x3e],dh
+ 1c9:	f3 13 02             	repz adc eax,DWORD PTR [edx]
+ 1cc:	43                   	inc    ebx
+ 1cd:	f0 04 03             	lock add al,0x3
+ 1d0:	43                   	inc    ebx
+ 1d1:	ea 42 13 1a 68 82 f0 	jmp    0xf082:0x681a1342
+ 1d8:	01 02                	add    DWORD PTR [edx],eax
+ 1da:	1a 60 08             	sbb    ah,BYTE PTR [eax+0x8]
+ 1dd:	bd 00 bf 3c 00       	mov    ebp,0x3cbf00
+
+000001e0 <$d>:
+ 1e0:	3c 00                	cmp    al,0x0
+ 1e2:	00 01                	add    BYTE PTR [ecx],al
+ 1e4:	00 10                	add    BYTE PTR [eax],dl
+ 1e6:	03 40 00             	add    eax,DWORD PTR [eax+0x0]
+ 1e9:	00 00                	add    BYTE PTR [eax],al
+	...
+
+Disassembly of section .text.ConfigSysTick:
+
+0000039c <$t>:
+$t():
+ 39c:	08 b5 0b 48 ff f7    	or     BYTE PTR [ebp-0x800b7f5],dh
+
+0000039d <ConfigSysTick>:
+ConfigSysTick():
+ 39d:	b5 0b                	mov    ch,0xb
+ 39f:	48                   	dec    eax
+ 3a0:	ff f7                	push   edi
+ 3a2:	fe                   	(bad)  
+ 3a3:	ff 60 21             	jmp    DWORD PTR [eax+0x21]
+ 3a6:	0f 20 ff             	mov    edi,cr7
+ 3a9:	f7 fe                	idiv   esi
+ 3ab:	ff                   	(bad)  
+ 3ac:	ff f7                	push   edi
+ 3ae:	fe                   	(bad)  
+ 3af:	ff 64 23 b0          	jmp    DWORD PTR [ebx+eiz*1-0x50]
+ 3b3:	fb                   	sti    
+ 3b4:	f3 f0 ff f7          	repz lock push edi
+ 3b8:	fe                   	(bad)  
+ 3b9:	ff                   	(bad)  
+ 3ba:	ff f7                	push   edi
+ 3bc:	fe                   	(bad)  
+ 3bd:	ff                   	(bad)  
+ 3be:	ff f7                	push   edi
+ 3c0:	fe                   	(bad)  
+ 3c1:	ff                   	(bad)  
+ 3c2:	bd e8 08 40 ff       	mov    ebp,0xff4008e8
+ 3c7:	f7 fe                	idiv   esi
+ 3c9:	bf 00 bf 00 00       	mov    edi,0xbf00
+
+000003cc <$d>:
+ 3cc:	00 00                	add    BYTE PTR [eax],al
+	...
+
+Disassembly of section .text.startup.main:
+
+0000076c <$t>:
+$t():
+ 76c:	08 b5 10 4b 10 48    	or     BYTE PTR [ebp+0x48104b10],dh
+
+0000076d <main>:
+main():
+ 76d:	b5 10                	mov    ch,0x10
+ 76f:	4b                   	dec    ebx
+ 770:	10 48 1b             	adc    BYTE PTR [eax+0x1b],cl
+ 773:	68 10 4c db 6d       	push   0x6ddb4c10
+ 778:	98                   	cwde   
+ 779:	47                   	inc    edi
+ 77a:	ff f7                	push   edi
+ 77c:	fe                   	(bad)  
+ 77d:	ff                   	(bad)  
+ 77e:	ff f7                	push   edi
+ 780:	fe                   	(bad)  
+ 781:	ff                   	(bad)  
+ 782:	ff f7                	push   edi
+ 784:	fe                   	(bad)  
+ 785:	ff 0d 48 0d 49 ff    	dec    DWORD PTR ds:0xff490d48
+ 78b:	f7 fe                	idiv   esi
+ 78d:	ff 00                	inc    DWORD PTR [eax]
+ 78f:	23 0a                	and    ecx,DWORD PTR [edx]
+ 791:	48                   	dec    eax
+ 792:	63 72 ff             	arpl   WORD PTR [edx-0x1],si
+ 795:	f7 fe                	idiv   esi
+ 797:	ff 08                	dec    DWORD PTR [eax]
+ 799:	48                   	dec    eax
+ 79a:	07                   	pop    es
+ 79b:	49                   	dec    ecx
+ 79c:	ff f7                	push   edi
+ 79e:	fe                   	(bad)  
+ 79f:	ff 63 7a             	jmp    DWORD PTR [ebx+0x7a]
+ 7a2:	01 2b                	add    DWORD PTR [ebx],ebp
+ 7a4:	f8                   	clc    
+ 7a5:	d1 05 48 03 49 ff    	rol    DWORD PTR ds:0xff490348,1
+ 7ab:	f7 fe                	idiv   esi
+ 7ad:	ff f3                	push   ebx
+ 7af:	e7 44                	out    0x44,eax
+
+000007b0 <$d>:
+ 7b0:	44                   	inc    esp
+ 7b1:	00 00                	add    BYTE PTR [eax],al
+ 7b3:	01 40 05             	add    DWORD PTR [eax+0x5],eax
+ 7b6:	c0 01 00             	rol    BYTE PTR [ecx],0x0
+	...

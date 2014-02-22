@@ -63,6 +63,8 @@ extern void vPaintSBoxes(tContext *context);
 extern void processOptions(tuiConfig* p_uiConfig);
 extern void vPollSBoxButton(tContext* sContext, tuiConfig* p_uiConfig);
 extern void vInitUI(tContext* sContext); // Initialises
+extern void DrawStartBanner(tContext* pContext, char* title); /* Draws a Title banner for the graph ui*/
+extern void ClearGraph(tContext* pContext); /* Clears the graph screen*/
 /*---------------------------------SBOX CREATION AND USE--------------------------*/
 /*------------------------see quickselect.c for use example-----------------------*/
 
