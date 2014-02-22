@@ -38,8 +38,10 @@
 #include "utils/ustdlib.h"
 #include "driverlib/timer.h"
 #include "inc/hw_timer.h"
+#include "driverlib/adc.h"
 #include "inc/hw_nvic.h"
 #include "inc/hw_types.h"
+#include "inc/hw_gpio.h"
 #include "inc/hw_ints.h"
 #include "drivers/buttons.h"
 #include "exercise2.h"
@@ -146,6 +148,7 @@ ConfigureUART(void)
     //
     UARTStdioConfig(0, BAUDRATE, 16000000);
 }
+
 //*****************************************************************************
 //
 // The interrupt handler for the for Systick interrupt.
@@ -158,43 +161,6 @@ SysTickIntHandler(void)
 	if ((HWREG(NVIC_ST_CTRL) & NVIC_ST_CTRL_COUNT)!=0){}
 	current_time++;
 	ROM_IntMasterEnable();
-}
-
-//*****************************************************************************
-//
-// The interrupt handler for the first timer interrupt.
-//
-//*****************************************************************************
-void
-Timer0IntHandler(void)
-{
-    //
-    // Clear the timer interrupt.
-    //
-    ROM_TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
-    //
-    // Toggle the flag for the first timer.
-    //
-    HWREGBITW(&g_ui32Flags, 0) ^= 1;
-}
-
-//*****************************************************************************
-//
-// The interrupt handler for the second timer level 2 interrupt.
-//
-//*****************************************************************************
-void
-Timer1IntHandler(void)
-{
-	//
-    // Clear the timer interrupt.
-    //
-    ROM_TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
-    //
-    // Toggle the flag for the second timer.
-    //
-    HWREGBITW(&g_ui32Flags, 1) ^= 1;
-
 }
 
 //*****************************************************************************
@@ -233,8 +199,63 @@ ConfigSysTick() {
 	//
 	SysTickEnable();
 }
+/******************************************************************************
+ * Enables the ADC peripherals
+ * but the Sequence needs to be configured at run-time
+ ******************************************************************************/
+void
+InitialiseADCPeripherals () {
+	//
+	// The ADC0 peripheral must be enabled for use.
+	//
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
 
+	//
+	// GPIO port E needs to be enabled
+	// so the GPIO pins for data input can be used.
+	//
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
 
+	//
+	// Select the analog ADC function for these pins.
+	// Accelerometer z-axis is on PE6 and AIN0 is on PE3
+	//
+
+	GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_6);
+	GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3);
+
+	//
+	// Select the external reference for greatest accuracy.
+	//
+	ADCReferenceSet(ADC0_BASE, ADC_REF_EXT_3V);
+
+	//
+	// Apply workaround for erratum 6.1, in order to use the
+	// external reference.
+	//
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+	HWREG(GPIO_PORTB_BASE + GPIO_O_AMSEL) |= GPIO_PIN_6;
+
+}
+/******************************************************************************
+ * Enables the Timer peripherals
+ * but the ADC trigger and timers needs to be configured at run-time
+ ******************************************************************************/
+void
+InitialiseTimers() {
+	// Enable the timer peripherals.
+	//
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+	//
+	// Configure the two 32-bit periodic timers.
+	//
+	ROM_TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC_UP);
+	ROM_TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC_UP);
+
+	TimerLoadSet(TIMER0_BASE, TIMER_A, 0);
+	TimerLoadSet(TIMER1_BASE, TIMER_A, 0);
+}
 //*****************************************************************************
 //
 // Print "exercise1 World!" to the display.
@@ -263,7 +284,10 @@ main(void)
 	// Initialize the graphics context.
 	//
 	GrContextInit(&sDisplayContext, &g_sCFAL96x64x16);
-
+	// Initialise the ADC peripherals
+	InitialiseADCPeripherals();
+	// Initialise the timers
+	InitialiseTimers();
 	// Initialise UI State
 	uiConfig.uiState = idle;
 	// Setup Display.

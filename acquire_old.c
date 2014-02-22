@@ -41,13 +41,27 @@
 uint32_t puiADC0Buffer[MAX_SAMPLES*MAX_SAMPLE_SIZE];
 
 /****************************************************************
- * Pointer to ADC buffer.
+ * Pointers to ADC buffer.
  ***************************************************************/
-volatile int puiADC0BufferPtr = 0;
+volatile uint32_t* puiADC0StartPtr;
+volatile uint32_t* puiADC0StopPtr;
 /****************************************************************
- * Sample Event Flag
+ * Acquire Event Flags.
+ * Bit 0: For Normal Data logging Start Trigger.
+ * 0 means trigger has not been detected.
+ * 1 means trigger has been detected.
+ *
+ * Bit 1: Done bit for Sampling Set Event.
+ * Clear this flag when you have read all the data from the ADC buffer.
+ * 0 means that the current sampling set has not finished
+ * 1 means that the current sampling set has been gotten.
  ***************************************************************/
-//volatile bool sampleflag = 0;
+volatile uint8_t eventflags = 0;
+/* ***************************************************************
+ * Defines for accessing eventflag bits.
+ * ***************************************************************/
+#define ADC_TRIG_CTL 0x01
+#define ADC_SAMPLE_DONE 0x02
 
 volatile uint32_t buffersize;
 volatile uint32_t sequence;
@@ -57,82 +71,234 @@ volatile uint32_t steplen;
  * min = datapoint[0], max = datapoint[1], ave = datapoint[2]
  *************************************************************/
 #define MAX_NUM 999999999
-uint32_t datapoints[3] = {MAX_NUM,0,0};
-/****************************************************************
- * Pointer to next line of ADC buffer for processing.
- ***************************************************************/
-volatile int p_processingPtr = 0;
+typedef struct tdata {
+	uint32_t max;
+	uint32_t min;
+	uint32_t ave;
+}tdatapoint;
 
+volatile tdatapoint datapoints = {MAX_NUM,0,0};
+/****************************************************************
+ * Pointer to NEXT line of ADC buffer for processing.
+ ***************************************************************/
+volatile uint32_t* p_processingPtr;
+/****************************************************************
+ * Graphs x-axis. Here because it needs global initialisation.
+ ****************************************************************/
+volatile uint32_t x_axis;
+/****************************************************************
+ * Initialise the Graphics configuration
+ ****************************************************************/
+tYBounds yBounds[] = {
+		{250, -50, ACCEL },				// Accelerometer unit is g*100
+		{200, 0, VOLTS }					// Voltage is in V*100
+};
+/****************************************************************
+ * Initialise the series color
+ ****************************************************************/
+tseriesColor seriesColor = {ClrRed, ClrGreen, ClrWhite};
+/****************************************************************
+ * Initialise the graphics configuration
+ ****************************************************************/
+volatile tguiConfig record = {
+		0,
+		yBounds,
+		&seriesColor,
+		0
+};
+
+//-------------------------Functions----------------------------//
+void ADC0AcquireStop() {
+
+	// Disable every sequence used in ADC0.
+	//
+	// Disable ADC interrupts
+	//
+	ROM_IntDisable(INT_ADC0SS0);
+	ROM_IntDisable(INT_ADC0SS3);
+
+	//
+	// Disable ADC sequencers
+	//
+	ROM_ADCSequenceDisable(ADC0_BASE, 0);
+	ROM_ADCSequenceDisable(ADC0_BASE, 3);
+
+	TimerControlTrigger(TIMER0_BASE, TIMER_A, false);
+
+}
+// Returns Accelerometer value in g*100 read raw from ADC buffer.
+int ReadAccel(uint32_t value) {
+	return (2442*(int)value - 5000000)/10000;
+}
+/****************************************************************/
+#define MAX_SCREEN_Y_AXIS 56
+/*
+ * Gets the fraction of the screen for the appropriate boundary condition.
+ * If values exceeds the maximum then it saturates at the maximum.
+ * Likewise for minimum.
+ */
+uint32_t
+GetYAxis(channel_enum channel, uint32_t val) {
+	uint32_t temp = 0;
+	// Get the fraction of the screen for appropriate boundary condition.
+	for (int i = 0; i < sizeof(yBounds)/sizeof(tYBounds);i++){ // Search for matching channel
+		if (yBounds[i].channel == channel) {
+			if (channel == ACCEL) {
+				int temp_accel = ReadAccel(val);
+				if (temp_accel > record.pYbounds[i].MAX ) {
+					temp = MAX_SCREEN_Y_AXIS;
+				} else if (temp_accel < record.pYbounds[i].MIN) {
+					temp = 0;
+				} else {
+					temp = ((temp_accel - record.pYbounds[i].MIN)*MAX_SCREEN_Y_AXIS)/ (record.pYbounds[i].MAX - record.pYbounds[i].MIN);
+				}
+				break;
+
+			} else if(channel == VOLTS){
+				if (val > record.pYbounds[i].MAX ) {
+					temp = MAX_SCREEN_Y_AXIS;
+				} else if (val < record.pYbounds[i].MIN) {
+					temp = 0;
+				} else {
+					temp = ((val - record.pYbounds[i].MIN)*MAX_SCREEN_Y_AXIS)/ (record.pYbounds[i].MAX - record.pYbounds[i].MIN);
+				}
+				break;
+			}
+		}
+	}
+
+	// Account for screen inverting.
+	return 63-temp;
+}
+
+/****************************************************************
+ * Plots one sample on OLED
+ *****************************************************************/
+void
+PlotData(tContext* psContext){
+	GrContextForegroundSet(psContext, record.pSeriesColor->MAX_COLOR);
+	GrPixelDraw(psContext, x_axis,GetYAxis(record.puiConfig->channelOpt, datapoints.max)); // Draw max first.
+
+	GrContextForegroundSet(psContext, record.pSeriesColor->MIN_COLOR);
+	GrPixelDraw(psContext, x_axis,GetYAxis(record.puiConfig->channelOpt, datapoints.min)); // Draw min
+
+	GrContextForegroundSet(psContext, record.pSeriesColor->AVE_COLOR);
+	GrPixelDraw(psContext, x_axis,GetYAxis(record.puiConfig->channelOpt, datapoints.ave)); // Draw ave last
+
+	x_axis++;
+	//wraparound.
+	if(x_axis == MAX_SAMPLES) {
+		x_axis = 0;
+		//Clear Graph.
+		ClearGraph(record.pContext);
+	}
+}
 /************************************************************
  * Reads the ADC buffer to compute the min, max and ave data points.
  * The function always reads up to the written part of the buffer
  * so there is no chance for data hazard.
+ * TODO: Use mutex instead of critical sections.
  *************************************************************/
 void
-computeSample(tuiConfig* p_uiConfig) {
+computeSample(tContext *pContext, tuiConfig* p_uiConfig) {
 	// Read the ADC buffer pointer in a critical section.
 	// Loops until buffer has enough data.
+//	UARTprintf("Sample\r");
+
+	uint32_t * pointer;
 	int size = 0;
+	char debugChar[10];
+
 	do {
 		ROM_IntMasterDisable();
-		int pointer = puiADC0BufferPtr;
+		pointer = puiADC0StartPtr;
 		ROM_IntMasterEnable();
-		if (pointer == -1) { //end of sample.
-			size =  buffersize;
-		} else {
-			size = pointer;
+		size = pointer - p_processingPtr;
+		// Don't poll too fast to starve the ISR with the critical section.
+		/*
+		 * Because compute sample may take a while for the slowest
+		 * sampling frequency, button polling is inserted here to
+		 * check if a button has been pressed.
+		 * TODO: implement button press isr.
+		 */
+		vPollSBoxButton(pContext, p_uiConfig);
+		if (record.puiConfig->uiState == idle) {
+			return;
 		}
-		size -= p_processingPtr;
-		// Don't poll too fast to prevent the ISR.
 		SysCtlDelay(1000);
-	} while(size < p_uiConfig->sample_size);
 
+	} while(size < p_uiConfig->sample_size);
+//	usprintf(debugChar, "%d", size);
+//	UARTprintf(debugChar);
+//	UARTprintf("\r");
 	// Reset data points;
-	datapoints[0] = MAX_NUM;
-	datapoints[1] = datapoints[2] = 0;
+	datapoints.min = MAX_NUM;
+	datapoints.max = 0;
+	datapoints.ave = 0;
 	// Compute Min, Max, Ave
-	for (int i = p_processingPtr; i < p_uiConfig->sample_size; i++) {
-		if (puiADC0Buffer[i] < datapoints[0]) { // Compute Min
-			datapoints[0] = puiADC0Buffer[i];
+	for (int i = 0; i < p_uiConfig->sample_size; i++) {
+		if (p_processingPtr[0] < datapoints.min) { // Compute Min
+			datapoints.min = p_processingPtr[0];
 		}
-		if (puiADC0Buffer[i] > datapoints[1]) { // Compute Max
-			datapoints[1] = puiADC0Buffer[i];
+		if (p_processingPtr[0] > datapoints.max) { // Compute Max
+			datapoints.max = p_processingPtr[0];
 		}
-		datapoints[2]+=puiADC0Buffer[i];
+		datapoints.ave+=p_processingPtr[0];
+		p_processingPtr++;
 	}
-	datapoints[2] /= p_uiConfig->sample_size;
-	p_processingPtr += p_uiConfig->sample_size;
+	datapoints.ave /= p_uiConfig->sample_size;
 	// Check for wrap around
-	if (p_processingPtr == buffersize)
-		p_processingPtr = 0;
+	if (p_processingPtr == puiADC0StopPtr) {
+		p_processingPtr = puiADC0Buffer;
+	}
+//	UARTprintf("start...\r");
+	usprintf(debugChar, "%5d", datapoints.max);
+	UARTprintf(debugChar);
+	UARTprintf(" \r");
+	UARTprintf("ave \r");
+	usprintf(debugChar, "%5d", datapoints.ave);
+	UARTprintf(debugChar);
+	UARTprintf(" \r");
 }
 /************************************************************
  * Gets the appropriate sequence for the ADC.
  * Sequence 0 has a FIFO depth of 8words. Sequence 1:4 words,
  * Sequence 2: 2 words and Sequence 3: 1 word.
+ * The frequency of sampling determines the appropriate fifo length.
+ * Since the ADC can only sample back-to-back at 1MHz,
+ * the length of the fifo is only maximum at 1MHz. We are assuming
+ * in this case that data can be grabbed within 50clocks.
+ * In any other frequency, we use a fifo length of 1.
  *************************************************************/
 uint32_t GetSequence(tuiConfig* p_uiConfig){
-	switch (p_uiConfig->sample_size) {
-	case 1: return 3;
-	default: return 0;
+	switch (p_uiConfig->freq) {
+	case 1000000: return 0;
+	default: return 3;
 	}
 }
-
+volatile uint32_t tobedelted = 0;
 /***************************************************************
  * Reads the ADC buffer for a new sample. Computes Min, Max, Ave
  * and sets the sample event flag when sampling is completed.
+ * TODO: Implement Circular buffers.
  ***************************************************************/
 void GetSampleISR() {
 	// Reset pointer on new sample.
 	ADCIntClear(ADC0_BASE, sequence);
-	if (puiADC0BufferPtr == -1)puiADC0BufferPtr = 0;
-	ADCSequenceDataGet(ADC0_BASE, sequence, &puiADC0Buffer[puiADC0BufferPtr]);
-	puiADC0BufferPtr+=steplen;
-	UARTprintf(".\n");
-	if (puiADC0BufferPtr == buffersize) {// Reset buffer pointer, stop processing till started by SW.
-		puiADC0BufferPtr = -1;
+	ADCSequenceDataGet(ADC0_BASE, sequence, puiADC0StartPtr);
+	puiADC0StartPtr+=steplen;
+	/*
+	 * Check for wraparound. This also means one sequence has been
+	 * obtained so flag for sampling done.
+	 */
+	if (puiADC0StartPtr == puiADC0StopPtr) {
+		puiADC0StartPtr = puiADC0Buffer;
+		// Set the done bit of the event flag.
+		eventflags |= ADC_SAMPLE_DONE;
 	//	TODO:Stop Command Here
+		ADC0AcquireStop();
 	}
+	tobedelted++;
 }
 /***************************************************************
  * Gets the Actual Frequency Equivalent of value
@@ -148,20 +314,20 @@ GetPeriod(uint32_t freq){
 //
 // ***************************************************************
 void
-ConfigTimer0(tuiConfig* p_uiConfig) {
-	// Enable the timer peripherals.
-	//
-	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
-	//
-	// Configure the two 32-bit periodic timers.
-	//
-	ROM_TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC_UP);
-	ROM_TimerLoadSet(TIMER0_BASE, TIMER_A, GetPeriod(p_uiConfig->freq));
-//	// Set the ADC event trigger.
-	TimerADCEventSet(TIMER0_BASE, TIMER_ADC_TIMEOUT_A);
-	// Configure Timer0 to trigger the ADC conversion.
+StartTimer0(uint32_t period) {
+
+	ROM_TimerLoadSet(TIMER0_BASE, TIMER_A, period);
+	// Set the timer to trigger ADC conversion.
 	TimerControlTrigger(TIMER0_BASE, TIMER_A, true);
+	//
+	// Enable the timer0.
+	//
 	ROM_TimerEnable(TIMER0_BASE, TIMER_A);
+}
+void
+StopTimer0() {
+	ROM_TimerDisable(TIMER0_BASE, TIMER_A);
+	TimerControlTrigger(TIMER0_BASE, TIMER_A, false);
 }
 /***************************************************************
  * Sets up the appropriate ADC channel, its trigger and associated
@@ -170,60 +336,22 @@ ConfigTimer0(tuiConfig* p_uiConfig) {
  * After this call, the ADC periodic sampling starts running.
  ****************************************************************/
 void
-configChannel(tuiConfig* p_uiConfig) {
+ADC0AcquireStart(tuiConfig* p_uiConfig, void (*pfnHandler)(void)) {
 	//
-	// The ADC0 peripheral must be enabled for use.
+	// Display the setup on the console.
 	//
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+	UARTprintf("ADC Acquire Start\n");
 
 	//
-	// For this example ADC0 is used with AIN0 on port E7.
-	// The actual port and pins used may be different on your part, consult
-	// the data sheet for more information.  GPIO port E needs to be enabled
-	// so these pins can be used.
-	// TODO: change this to whichever GPIO port you are using.
-	//
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
-
-	//
-	// Select the analog ADC function for these pins.
-	// Consult the data sheet to see which functions are allocated per pin.
-	// TODO: change this to select the port/pin you are using.
-	//
-	if (p_uiConfig->channelOpt == ACCEL) {
-		GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_6);
-	} else if (p_uiConfig->channelOpt == VOLTS) {
-		GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3);
-	}
-    //
-    // Select the external reference for greatest accuracy.
-    //
-    ROM_ADCReferenceSet(ADC0_BASE, ADC_REF_EXT_3V);
-//    MAP_ADCReferenceSet(ADC1_BASE, ADC_REF_EXT_3V);
-
-    //
-    // Apply workaround for erratum 6.1, in order to use the
-    // external reference.
-    //
-    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
-    HWREG(GPIO_PORTB_BASE + GPIO_O_AMSEL) |= GPIO_PIN_6;
-//    UARTprintf("ADC Config Check0! \n");
-	sequence = GetSequence( p_uiConfig);
-
-	//
-	//Configure the timer to be used for triggering conversion.
-	// Configure the ADC Event
-
-	ConfigTimer0(p_uiConfig);
-
-	//
-	// Enable sample sequence with a processor signal trigger.  Sequence 3
+	// Enable sample sequence 3 with a processor signal trigger.  Sequence 3
 	// will do a single sample when the processor sends a signal to start the
 	// conversion.  Each ADC module has 4 programmable sequences, sequence 0
 	// to sequence 3.  This example is arbitrarily using sequence 3.
 	//
-	ADCSequenceConfigure(ADC0_BASE, sequence,  ADC_TRIGGER_TIMER, 3);
-//	UARTprintf("ADC Config Check1! \n");
+
+	ADCSequenceConfigure(ADC0_BASE, sequence, ADC_TRIGGER_TIMER, 3);
+	ADCIntRegister(ADC0_BASE, sequence, pfnHandler);
+
 	//
 	// Configure step 0 on sequence 3.  Sample channel 0 (ADC_CTL_CH0) in
 	// single-ended mode (default) and configure the interrupt flag
@@ -234,26 +362,27 @@ configChannel(tuiConfig* p_uiConfig) {
 	// conversion using sequence 3 we will only configure step 0.  For more
 	// information on the ADC sequences and steps, reference the datasheet.
 	//
-	uint32_t channel = 0;
+	uint32_t config = 0;
 	if (p_uiConfig->channelOpt == ACCEL) {
-		channel = ADC_CTL_CH21;
+		config = ADC_CTL_CH21;
 	} else if (p_uiConfig->channelOpt == VOLTS) {
-		channel = ADC_CTL_CH0;
+		config = ADC_CTL_CH0;
 	}
-	steplen = (sequence == 0)? 8:1;
-	for (int step = 0; step < steplen; step++) {
-		if (step == 8)	channel |= (ADC_CTL_IE | ADC_CTL_END);
-		 ADCSequenceStepConfigure(ADC0_BASE, sequence, step, channel);
-	}
-//	UARTprintf("ADC Config Check2! \n");
-	ADCIntRegister(ADC0_BASE, sequence, GetSampleISR);
+	// Some important initialisations
 	// Configure the buffer size for sequence.
 	buffersize = p_uiConfig->sample_size * MAX_SAMPLES;
+	for (int step = 0; step < steplen; step++) {
+		if (step == steplen-1)	{
+			config |= (ADC_CTL_IE | ADC_CTL_END);
+		}
+		ADCSequenceStepConfigure(ADC0_BASE, sequence, step, config);
+	}
+
 	//
-	// Since sample sequence is now configured, it must be enabled.
+	// Since sample sequence 3 is now configured, it must be enabled.
 	//
 	ADCSequenceEnable(ADC0_BASE, sequence);
-//	ADCIntEnable(ADC0_BASE, sequence);
+
 	//
 	// Clear the interrupt status flag.  This is done to make sure the
 	// interrupt flag is cleared before we sample.
@@ -261,33 +390,225 @@ configChannel(tuiConfig* p_uiConfig) {
 	ADCIntClear(ADC0_BASE, sequence);
 	// Enable the interrupt after calibration.
 	ADCIntEnable(ADC0_BASE, sequence);
-//	char str[5];
-//	usprintf(str, "%d", GetPeriod(p_uiConfig->freq));
-//	UARTprintf(str);
+//	StartTimer0(GetPeriod(p_uiConfig->freq));
 }
+
+// Described with its implementation.
+void AcquireInit(tuiConfig* p_uiConfig);
+
 /***************************************************************
  * Main function to execute the acquire function. This starts the ADC
  * and plots the values on the graph. It is an infinite loop that
  * breaks on user input.
  ***************************************************************/
 void
-AcquireMain(tContext* pContext, tuiConfig* p_uiConfig) {
-	configChannel(p_uiConfig);
-//	UARTprintf("Acquire run check!");
-	//Debug!
-	char str[5];
-	usprintf(str, "%d", TimerLoadGet(TIMER0_BASE, TIMER_A));
-	UARTprintf("Timer period: ");
-	UARTprintf(str);
-	UARTprintf("\n");
+AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
+    //
+    // This array is used for storing the data read from the ADC FIFO. It
+    // must be as large as the FIFO for the sequencer in use.  This example
+    // uses sequence 3 which has a FIFO depth of 1.  If another sequence
+    // was used with a deeper FIFO, then the array size must be changed.
+    //
 
-
-//	char str[5];
-	while (1) {
-//		computeSample(p_uiConfig);
-//		usprintf(str, "%d",datapoints[2]);
-//		WriteString(pContext,str,0, 3, 7);
+	// --------------------Initialisations----------------------------//
+	//initialise user configuration
+	record.puiConfig = puiConfig_t;
+	//initialise pointers
+	p_processingPtr = puiADC0Buffer;
+	puiADC0StartPtr = puiADC0Buffer;
+	puiADC0StopPtr = &puiADC0Buffer[record.puiConfig->sample_size * MAX_SAMPLES];
+	sequence = GetSequence(record.puiConfig);
+	steplen = (sequence == 0)? 8:1;
+	// Initialise title.
+	if (record.puiConfig->channelOpt == ACCEL) {
+		record.seriesTitle = "ACCEL";
+	}else if (record.puiConfig->channelOpt == VOLTS) {
+		record.seriesTitle = "VOLTS";
 	}
+	//Initialise the context
+	record.pContext = pContext;
+	DrawStartBanner(pContext, record.seriesTitle);
 
+	// Initialise Graph x-axis
+	x_axis = 0;
+	// Resets the event flags
+	eventflags = 0;
+	uint32_t loopCount = 0;
+	// ---------------Run Acquire functionality----------------------//
+
+
+	AcquireInit(record.puiConfig);
+
+	// Wait for trigger event
+	while((!eventflags) & ADC_TRIG_CTL){
+		/*
+		 * check for button press while waiting. Should really
+		 * use an ISR for buttons. This is getting way too messy.
+		 */
+		vPollSBoxButton(pContext, record.puiConfig);
+		if (record.puiConfig->uiState == idle) {
+			// Stop logging, return to UI.
+//			break;
+			ADC0AcquireStop();
+			ClearAllScreen(record.pContext);
+			return;
+		}
+	}
+	// Reset trigger event flag.
+	eventflags &= !ADC_TRIG_CTL;
+	// If we get to here that means ADC conversion has started.
+	UARTprintf("  Checkpoint!\r");
+	while (1) {
+	// 	// Start logging data!
+		ADC0AcquireStart(record.puiConfig);
+		char str[5];
+		//reset loopcount
+		loopCount = 0;
+		while(loopCount != MAX_SAMPLES)
+		{
+			loopCount++;
+			vPollSBoxButton(pContext, record.puiConfig);
+			computeSample(record.pContext,record.puiConfig);
+			PlotData(record.pContext);
+
+			if (record.puiConfig->uiState == idle) {
+				// Stop logging, return to UI.
+	//			break;
+				ADC0AcquireStop();
+				ClearAllScreen(record.pContext);
+				return;
+			}
+			SysCtlDelay(SysCtlClockGet() / 1000);
+		}
+
+		//TODO: Modify Loop to poll buttons.
+		if (record.puiConfig->channelOpt == ACCEL) {
+			SysCtlDelay(SysCtlClockGet());
+		} else if (record.puiConfig->channelOpt == VOLTS) {
+			SysCtlDelay(SysCtlClockGet()*10);
+		}
+	}
+}
+/*****************************************************************
+ * Stops the trigger detection functionality.
+ *****************************************************************/
+void
+StopDetection() {
+	// Disable the interrupt.
+	ADCIntDisable(ADC0_BASE, 3);
+	// Stop the timer from triggering ADC conversion.
+	TimerControlTrigger(TIMER0_BASE, TIMER_A, false);
+	// First remove the ISR.
+	ADCIntUnregister(ADC0_BASE,3);
+	// Disable the sequence.
+	ADCSequenceDisable(ADC0_BASE, 3);
+	//
+	// The ADC0 peripheral is disabled till use.
+	//
+//	SysCtlPeripheralDisable(SYSCTL_PERIPH_ADC0);
 }
 
+/****************************************************************
+ * Defines the threshold voltage for the volts trigger detection.
+ ****************************************************************/
+# define VTHRES 104
+
+/****************************************************************
+ * Used to indicate the first entry to TriggerDetectISR.
+ ****************************************************************/
+volatile bool first = true;
+
+/****************************************************************
+ * Stores the previous value of the accelerometer z-axis 100ms ago.
+ ****************************************************************/
+volatile int prev_value = 0;
+
+/****************************************************************
+ * This interrupt handler is set up by AcquireInit to check
+ * for the events that begin a data logging. This is when the voltage
+ * exceeds a changeable threshold or
+ * the accelerometer z-axis changes g by more than 0.5.
+ *****************************************************************/
+void TriggerDetectISR() {
+	ADCIntClear(ADC0_BASE, 3);
+	tobedelted++;
+	ADCSequenceDataGet(ADC0_BASE, 3,puiADC0Buffer);
+	if (record.puiConfig->channelOpt == ACCEL) {
+		if (first) {
+			first = false;
+			prev_value = ReadAccel(puiADC0Buffer[0]);
+		} else {
+			int curr_value = ReadAccel(puiADC0Buffer[0]);
+			if (abs(curr_value - prev_value) > 50) {
+				UARTprintf("Accel!\r");
+				// Set the event flag
+				eventflags|= ADC_TRIG_CTL;
+				ADC0AcquireStop();
+			}
+			prev_value = curr_value;
+		}
+	} else if (record.puiConfig->channelOpt == VOLTS){
+		if (puiADC0Buffer[0] > VTHRES) {
+			UARTprintf("Volts!\r");
+			eventflags|= ADC_TRIG_CTL;
+			ADC0AcquireStop();
+		}
+	}
+}
+
+/****************************************************************
+ * This function should be called first in AcquireRun.
+ * It starts the ADC interrupt to detect the beginning of data logging
+ * which is when the voltage exceeds a changeable threshold or
+ * the accelerometer z-axis changes g by more than 0.5. The trigger
+ * to look out for depends on the user's selection. The interrupt is
+ * called every 100ms.
+ ****************************************************************/
+void AcquireInit(tuiConfig* p_uiConfig) {
+
+	//
+	// Enable sample sequence 3 with a timer trigger.  Sequence 3
+	// will do a single sample when the processor sends a signal to start the
+	// conversion.  Each ADC module has 4 programmable sequences, sequence 0
+	// to sequence 3.
+	//
+	ADCSequenceConfigure(ADC0_BASE, 3, ADC_TRIGGER_TIMER, 3);
+	// Register the interupt called after ADC conversion.
+	ADCIntRegister(ADC0_BASE, 3, TriggerDetectISR);
+	/*
+	 * Select the ADC channel for the specific GPIO pin to be used.
+	 */
+	uint32_t config = 0;
+	if (p_uiConfig->channelOpt == ACCEL) {
+		config = ADC_CTL_CH21;
+	} else if (p_uiConfig->channelOpt == VOLTS) {
+		config = ADC_CTL_CH0;
+	}
+	//
+	// Configure step 0 on sequence 3.  Sample channel 0 (ADC_CTL_CH0) in
+	// single-ended mode (default) and configure the interrupt flag
+	// (ADC_CTL_IE) to be set when the sample is done.  Tell the ADC logic
+	// that this is the last conversion on sequence 3 (ADC_CTL_END).  Sequence
+	// 3 has only one programmable step.  Sequence 1 and 2 have 4 steps, and
+	// sequence 0 has 8 programmable steps.  Since we are only doing a single
+	// conversion using sequence 3 we will only configure step 0.  For more
+	// information on the ADC sequences and steps, reference the datasheet.
+	//
+
+	ADCSequenceStepConfigure(ADC0_BASE, 3, 0, config |ADC_CTL_IE|
+			ADC_CTL_END);
+	//
+	// Since sample sequence 3 is now configured, it must be enabled.
+	//
+	ADCSequenceEnable(ADC0_BASE, 3);
+
+	//
+	// Clear the interrupt status flag.  This is done to make sure the
+	// interrupt flag is cleared before we sample.
+	//
+	ADCIntClear(ADC0_BASE, 3);
+	// Enable the interrupt after calibration.
+	ADCIntEnable(ADC0_BASE, 3);
+	// Set timer0 to trigger ADC every 100ms for data logging start event.
+	StartTimer0(SysCtlClockGet()/10);
+}

@@ -9,6 +9,8 @@
 #define ACQUIRE_H_
 
 extern void AcquireMain(tContext* pContext, tuiConfig* p_uiConfig);
+extern int ReadAccel(uint32_t value);
+extern void ADC0AcquireStop();
 
 typedef struct tyb {
 	const int MAX;
