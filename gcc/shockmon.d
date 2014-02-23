@@ -1,4 +1,4 @@
-gcc/exercise2.o: exercise2.c \
+gcc/shockmon.o: shockmon.c \
  /cygdrive/c\emsys\arm_eabi\lib\gcc\arm-none-eabi\4.8.1\include\stdint.h \
  /cygdrive/c\emsys\arm_eabi\arm-none-eabi\include\stdint.h \
  /cygdrive/c\emsys\arm_eabi\arm-none-eabi\include\_ansi.h \
@@ -27,7 +27,7 @@ gcc/exercise2.o: exercise2.c \
  /cygdrive/c\emsys\arm_eabi\arm-none-eabi\include\sys\types.h \
  /cygdrive/c\emsys\arm_eabi\arm-none-eabi\include\machine\types.h \
  ../../../../driverlib/timer.h ../../../../inc/hw_timer.h \
- ../../../../driverlib/adc.h ../../../../inc/hw_nvic.h \
- ../../../../inc/hw_types.h ../../../../inc/hw_gpio.h \
- ../../../../inc/hw_ints.h ../drivers/buttons.h exercise2.h uicontrol.h \
- acquire.h shockmon.h
+ ../../../../inc/hw_nvic.h ../../../../inc/hw_types.h \
+ ../../../../inc/hw_ints.h ../../../../inc/hw_gpio.h \
+ ../../../../driverlib/debug.h ../../../../driverlib/adc.h exercise2.h \
+ uicontrol.h acquire.h

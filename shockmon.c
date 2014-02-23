@@ -28,6 +28,7 @@
 #include "inc/hw_timer.h"
 #include "inc/hw_nvic.h"
 #include "inc/hw_types.h"
+#include "inc/hw_types.h"
 #include "inc/hw_ints.h"
 #include "inc/hw_gpio.h"
 #include "driverlib/debug.h"
@@ -38,30 +39,46 @@
 
 
 volatile uint32_t puiADC1Buffer[1];
-volatile uint32_t prev_value, curr_value;
-volatile bool first = true;
+volatile uint32_t prev1_value;
+volatile bool first_entry = true;
+volatile tuiConfig* psuiConfig;
+
+
+//*****************************************************************************
+//
+// Flags that contain the current value of the interrupt indicator as displayed
+// on the CSTN display.
+//
+//*****************************************************************************
+uint32_t g_ui32Flags;
 /****************************************************************
  * This interrupt handler is set up by AcquireInit to check
  * for the events that begin a data logging. This is when the voltage
  * exceeds a changeable threshold or
  * the accelerometer z-axis changes g by more than 0.5.
  *****************************************************************/
-void DetectShockISR() {
-	ADCIntClear(ADC1_BASE, 3);
-	ADCSequenceDataGet(ADC1_BASE, 3,puiADC1Buffer);
-	if (first) {
-		first = false;
-		prev_value = ReadAccel(puiADC1Buffer[0]);
-	} else {
-		puiADC1Buffer[0] = ReadAccel(puiADC1Buffer[0]);
-		if (abs((int)puiADC1Buffer[0] - prev_value) > 100) {
-			UARTprintf("Accel!\r");
-			ADC0AcquireStop();
-			// Start logging waveform.
-
-		}
-		prev_value = puiADC1Buffer[0];
-	}
+void MonitorShockISR() {
+    ROM_TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+    //
+    // Toggle the flag for the second timer.
+    //
+    HWREGBITW(&g_ui32Flags, 1) ^= 1;
+	// If ADC has not converted yet, exit ISR.
+//	if (!ADCIntStatus(ADC1_BASE, 3, false)) return;
+//	ADCIntClear(ADC1_BASE, 3);
+//	ADCSequenceDataGet(ADC1_BASE, 3,puiADC1Buffer);
+//	if (first_entry) {
+//		first_entry = false;
+//		prev1_value = ReadAccel(puiADC1Buffer[0]);
+//	} else {
+//		puiADC1Buffer[0] = ReadAccel(puiADC1Buffer[0]);
+//		if (abs((int)puiADC1Buffer[0] - prev1_value) > 100) {
+//			UARTprintf("Accel!\r");
+//			ADC0AcquireStop();
+//			// Start logging waveform.
+//		}
+//		prev1_value = puiADC1Buffer[0];
+//	}
 }
 
 //*****************************************************************************
@@ -70,20 +87,42 @@ void DetectShockISR() {
 // Its priority is 2. 0 is reserved for exception handling.
 //
 //*****************************************************************************
+//void
+//ConfigTimer1(uint32_t period) {
+//	//Register Interrupt Handlers
+//	TimerIntRegister(TIMER1_BASE, TIMER_A, MonitorShockISR);
+//	// Set the priority of the Timers
+//	// Set Timer1 as level 1 priority
+//	IntPrioritySet(INT_TIMER1A, 0x40);
+//
+//	//
+//	// Configure the two 32-bit periodic timers.
+//	//
+//	ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, period);
+//	//
+//	// Setup the interrupts for the timer timeouts.
+//	//;
+//	ROM_IntEnable(INT_TIMER1A);
+//	ROM_TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+//	//
+//	// Enable the timer1.
+//	//
+//	ROM_TimerEnable(TIMER1_BASE, TIMER_A);
+//}
 void
 ConfigTimer1(uint32_t period) {
 	//Register Interrupt Handlers
-	TimerIntRegister(TIMER1_BASE, TIMER_A, DetectShockISR);
+	TimerIntRegister(TIMER1_BASE, TIMER_A, MonitorShockISR);
 	// Set the priority of the Timers
-	// Set Timer1 as level 1 priority
-	IntPrioritySet(INT_TIMER1A, 0x20);
+	// Set Timer1 as level 2 priority
+	IntPrioritySet(INT_TIMER1A, 0x40);
 	// Enable the timer peripherals.
 	//
 	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
 	//
 	// Configure the two 32-bit periodic timers.
 	//
-	ROM_TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC_UP);
+	TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
 	ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, period);
 	//
 	// Setup the interrupts for the timer timeouts.
@@ -112,8 +151,6 @@ void ADC1AcquireStart(tuiConfig* p_uiConfig, void (*pfnHandler)(void)) {
 	// to sequence 3.
 	//
 	ADCSequenceConfigure(ADC1_BASE, 3, ADC_TRIGGER_TIMER, 0);
-	// Register the interupt called after ADC conversion.
-	ADCIntRegister(ADC0_BASE, 3, TriggerDetectISR);
 	/*
 	 * Select the ADC channel for the specific GPIO pin to be used.
 	 */
@@ -148,16 +185,9 @@ void ADC1AcquireStart(tuiConfig* p_uiConfig, void (*pfnHandler)(void)) {
 	ADCIntClear(ADC0_BASE, 3);
 	// Enable the interrupt after calibration.
 	ADCIntEnable(ADC0_BASE, 3);
-	// Set timer0 to trigger ADC every 100ms for data logging start event.
-	StartTimer0(SysCtlClockGet()/10);
 }
 
-void
-MonitorStart() {
-
-}
-void DetectShockInit() {
-	ConfigTimer1(SysCtlClockGet()/10);
-
+void MonitorShockInit() {
+	ConfigTimer1(SysCtlClockGet()/100); //10ms
 }
 

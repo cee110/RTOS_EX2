@@ -114,6 +114,12 @@ volatile tguiConfig record = {
 };
 
 //-------------------------Functions----------------------------//
+
+void
+StopTimer0() {
+	ROM_TimerDisable(TIMER0_BASE, TIMER_A);
+	TimerControlTrigger(TIMER0_BASE, TIMER_A, false);
+}
 void ADC0AcquireStop() {
 
 	// Disable every sequence used in ADC0.
@@ -330,11 +336,7 @@ StartTimerTrigger0(uint32_t period) {
 	//
 	ROM_TimerEnable(TIMER0_BASE, TIMER_A);
 }
-void
-StopTimer0() {
-	ROM_TimerDisable(TIMER0_BASE, TIMER_A);
-	TimerControlTrigger(TIMER0_BASE, TIMER_A, false);
-}
+
 /***************************************************************
  * Sets up the appropriate ADC channel, its trigger and associated
  * interrupt handler. Also initialises the buffer size and sequence

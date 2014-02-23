@@ -113,6 +113,7 @@ ${COMPILER}/exercise2.axf: ${COMPILER}/startup_${COMPILER}.o
 ${COMPILER}/exercise2.axf: ${COMPILER}/uartstdio.o
 ${COMPILER}/exercise2.axf: ${COMPILER}/ustdlib.o
 ${COMPILER}/exercise2.axf: ${COMPILER}/buttons.o
+${COMPILER}/exercise2.axf: ${COMPILER}/shockmon.o
 ${COMPILER}/exercise2.axf: ${COMPILER}/uicontrol.o
 ${COMPILER}/exercise2.axf: ${COMPILER}/acquire.o
 ${COMPILER}/exercise2.axf: ${COMPILER}/exercise2.o

@@ -11,6 +11,6 @@
 
 //extern static uiStateEnum uiState;
 
-
+volatile uint32_t test_var;
 
 #endif /* EXERCISE2_H_ */

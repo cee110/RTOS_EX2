@@ -8,6 +8,6 @@
 #ifndef SHOCKMON_H_
 #define SHOCKMON_H_
 
-extern void MonitorShockInit(tuiConfig* puiConfig_t);
+extern void MonitorShockInit();
 
 #endif /* SHOCKMON_H_ */

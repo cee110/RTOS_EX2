@@ -47,6 +47,7 @@
 #include "exercise2.h"
 #include "uicontrol.h"
 #include "acquire.h"
+#include "shockmon.h"
 //*****************************************************************************
 //
 //! \addtogroup example_list
@@ -228,7 +229,7 @@ InitialiseADCPeripherals () {
 	// Select the external reference for greatest accuracy.
 	//
 	ADCReferenceSet(ADC0_BASE, ADC_REF_EXT_3V);
-
+	ADCReferenceSet(ADC1_BASE, ADC_REF_EXT_3V);
 	//
 	// Apply workaround for erratum 6.1, in order to use the
 	// external reference.
@@ -242,19 +243,16 @@ InitialiseADCPeripherals () {
  * but the ADC trigger and timers needs to be configured at run-time
  ******************************************************************************/
 void
-InitialiseTimers() {
+InitialiseTimer0() {
 	// Enable the timer peripherals.
 	//
 	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
-	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
 	//
 	// Configure the two 32-bit periodic timers.
 	//
 	ROM_TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC_UP);
-	ROM_TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC_UP);
 
 	TimerLoadSet(TIMER0_BASE, TIMER_A, 0);
-	TimerLoadSet(TIMER1_BASE, TIMER_A, 0);
 }
 //*****************************************************************************
 //
@@ -287,12 +285,13 @@ main(void)
 	// Initialise the ADC peripherals
 	InitialiseADCPeripherals();
 	// Initialise the timers
-	InitialiseTimers();
+	InitialiseTimer0();
 	// Initialise UI State
 	uiConfig.uiState = idle;
 	// Setup Display.
 	vInitUI(&sDisplayContext);
-
+	MonitorShockInit();
+	char str_t[5];
 	while (1) {
 		/* vProcessSBoxButton should be called regularly */
 		vPollSBoxButton(&sDisplayContext,&uiConfig); 					/* poll keys, changing SBoxes if needed */
@@ -301,6 +300,7 @@ main(void)
 			// Redraw settings UI.
 			vPaintSBoxes(&sDisplayContext);
 		}
+//		SysCtlDelay(SysCtlClockGet() / 100);
 	}
 
 }
