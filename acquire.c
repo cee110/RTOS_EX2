@@ -541,9 +541,9 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 		}
 
 		if (record.puiConfig->channelOpt == ACCEL) {
-			waitCount = 150;
+			waitCount = 300;
 		} else if (record.puiConfig->channelOpt == VOLTS) {
-			waitCount = 150;
+			waitCount = 30;
 		}
 		loopCount = 0;
 		while(loopCount != waitCount) {
