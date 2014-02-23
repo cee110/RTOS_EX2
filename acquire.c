@@ -181,7 +181,7 @@ GetYAxis(channel_enum channel, uint32_t val) {
 	}
 
 	// Account for screen inverting.
-	return 63-temp;
+	return 64-temp;
 }
 
 /****************************************************************
@@ -206,6 +206,7 @@ PlotData(tContext* psContext){
 		ClearGraph(record.pContext);
 	}
 }
+volatile uint32_t tobedeleted;
 /************************************************************
  * Reads the ADC buffer to compute the min, max and ave data points.
  * The function always reads up to the written part of the buffer
@@ -223,22 +224,28 @@ computeSample(tContext *pContext, tuiConfig* p_uiConfig) {
 	char debugChar[10];
 
 	do {
-		ROM_IntMasterDisable();
+//		ROM_IntMasterDisable();
 		pointer = puiADC0StartPtr;
-		ROM_IntMasterEnable();
+//		ROM_IntMasterEnable();
+		if (eventflags & ADC_SAMPLE_DONE) {
+			pointer = puiADC0StopPtr;
+			// clear the flag. We are done collecting all samples.
+			eventflags &= (!ADC_SAMPLE_DONE);
+		}
 		size = pointer - p_processingPtr;
+
+		vPollSBoxButton(pContext, p_uiConfig);
+		if (record.puiConfig->uiState == idle) {
+			return;
+		}
 		// Don't poll too fast to starve the ISR with the critical section.
 		/*
 		 * Because compute sample may take a while for the slowest
 		 * sampling frequency, button polling is inserted here to
 		 * check if a button has been pressed.
-		 * TODO: implement button press isr.
 		 */
-		vPollSBoxButton(pContext, p_uiConfig);
-		if (record.puiConfig->uiState == idle) {
-			return;
-		}
-		SysCtlDelay(1000);
+//		UARTprintf("Ha!: %d\r",tobedeleted);
+		SysCtlDelay(100);
 
 	} while(size < p_uiConfig->sample_size);
 	// Reset data points;
@@ -262,13 +269,12 @@ computeSample(tContext *pContext, tuiConfig* p_uiConfig) {
 		p_processingPtr = puiADC0Buffer;
 	}
 //	UARTprintf("start...\r");
-	usprintf(debugChar, "%5d", datapoints.max);
-	UARTprintf(debugChar);
-	UARTprintf(" \r");
-	UARTprintf("ave \r");
-	usprintf(debugChar, "%5d", datapoints.ave);
-	UARTprintf(debugChar);
-	UARTprintf(" \r");
+//	usprintf(debugChar, "%5d", datapoints.max);
+//	UARTprintf(" \r");
+//	UARTprintf("ave \r");
+//	usprintf(debugChar, "%5d", datapoints.ave);
+//	UARTprintf(debugChar);
+//	UARTprintf(" \r");
 }
 /************************************************************
  * Gets the appropriate sequence for the ADC.
@@ -286,14 +292,15 @@ uint32_t GetSequence(tuiConfig* p_uiConfig){
 	default: return 3;
 	}
 }
-volatile uint32_t tobedelted = 0;
 /***************************************************************
  * Reads the ADC buffer for a new sample. Computes Min, Max, Ave
  * and sets the sample event flag when sampling is completed.
  ***************************************************************/
+
 void GetSampleISR() {
 	// Reset pointer on new sample.
 	ADCIntClear(ADC0_BASE, sequence);
+	if (eventflags & ADC_SAMPLE_DONE) return;
 	ADCSequenceDataGet(ADC0_BASE, sequence, puiADC0StartPtr);
 	puiADC0StartPtr+=steplen;
 	/*
@@ -306,7 +313,7 @@ void GetSampleISR() {
 		eventflags |= ADC_SAMPLE_DONE;
 		ADC0AcquireStop();
 	}
-	tobedelted++;
+	tobedeleted++;
 }
 /***************************************************************
  * Gets the Actual Frequency Equivalent of value
@@ -534,7 +541,7 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 		}
 
 		if (record.puiConfig->channelOpt == ACCEL) {
-			waitCount = 1500;
+			waitCount = 150;
 		} else if (record.puiConfig->channelOpt == VOLTS) {
 			waitCount = 150;
 		}

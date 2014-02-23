@@ -104,6 +104,11 @@ ConfigTimer2(uint32_t period) {
 
 void
 MonitorStart() {
+	// Let the ISR know that this is the first entry
+	// Important, can cause false shock detection
+	// bug if omitted.
+	first_entry = true;
+
 	ROM_TimerEnable(TIMER1_BASE, TIMER_A);
 	//
 	// Disable ADC sequencers
@@ -152,6 +157,10 @@ void MonitorShockISR() {
 			// Start logging waveform.
 			ROM_IntMasterDisable();
 			psuiConfig->isShocked = true;
+			ROM_IntMasterEnable();
+		} else {
+			ROM_IntMasterDisable();
+			psuiConfig->isShocked = false;
 			ROM_IntMasterEnable();
 		}
 		prev1_value = puiADC1Buffer[0];

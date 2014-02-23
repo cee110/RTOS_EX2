@@ -1,24 +1,7 @@
 //*****************************************************************************
 //
-// exercise1.c - Simple exercise1 world example.
-//
-// Copyright (c) 2011-2013 Texas Instruments Incorporated.  All rights reserved.
-// Software License Agreement
-//
-// Texas Instruments (TI) is supplying this software for use solely and
-// exclusively on TI's microcontroller products. The software is owned by
-// TI and/or its suppliers, and is protected under applicable copyright
-// laws. You may not combine this software with "viral" open-source
-// software in order to form a larger program.
-//
-// THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.
-// NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT
-// NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY
-// CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
-// DAMAGES, FOR ANY REASON WHATSOEVER.
-//
-// This is part of revision 2.0.1.11577 of the EK-LM4F232 Firmware Package.
+// exercise2.c - Data Logger with Shock Detection.
+// Author: Chinemelu Ezeh
 //
 //*****************************************************************************
 #include <stdint.h>
@@ -49,14 +32,27 @@
 #include "shockmon.h"
 //*****************************************************************************
 //
-//! \addtogroup example_list
-//! <h1>exercise1 World (exercise1)</h1>
+//
+//! This is a simple application that displays the accelerometer z-axis and voltage input
+//! data on the OLED display. To navigate through the settings, press up and down to scroll
+//! between different setting topic. Press left and right to scroll between options for a
+//! specific topic. Press SELECT to lock onto a setting. If SELECT is not pressed, the
+//! settings are not saved.
 //!
-//! A very simple ``exercise1 world'' example.  It simply displays ``exercise1 World!''
-//! on the display and is a starting point for more complicated applications.
-//! This example uses calls to the TivaWare Graphics Library graphics
-//! primitives functions to update the display.  For a similar example using
-//! widgets, please see ``exercise1_widget''.
+//! The shock monitoring system starts at runtime but once a shock is detected, the
+//! waveform is plotted on a graph and the led blinks for about 10 seconds. Within this
+//! time, the graph can be cancelled but the led will still be blinking. Normal waveform
+//! can still be plotted but the shock monitoring will start again when the led stops blinking.
+//!
+//! The normal waveform graph can be cancelled at anytime so there is no need for reset.
+//! New setting can be selected after cancelling a graph.
+//!
+//! Errata:
+//! The ADC0 does not sample for 100kHz and 1MHz. So when selecting these options, operation is
+//! not guaranteed. The observation is that there is a relationship between unregistering an
+//! old ISR for the specific ADC0  and registering a new ISR. If no unregistering occurs, the ADC works fine.
+//! However, with re-registry comes change of timer0 period so that may also be part of issue.
+//
 //
 //*****************************************************************************
 
@@ -163,42 +159,42 @@ SysTickIntHandler(void)
 	ROM_IntMasterEnable();
 }
 
-//*****************************************************************************
+////*****************************************************************************
+////
+//// Sets up SysTick Timer to count down periodically with a period of 131us.
+//// Its priority is 3. 0 is reserved for exception handling.
+////
+////*****************************************************************************
+//void
+//ConfigSysTick() {
+//	 //
+//	// Register the interrupt handler function for Systick.
+//	//
+//	SysTickIntRegister(SysTickIntHandler);
 //
-// Sets up SysTick Timer to count down periodically with a period of 131us.
-// Its priority is 3. 0 is reserved for exception handling.
+//	// Set SysTick Priority to level 3
+//	IntPrioritySet(FAULT_SYSTICK,0x60);
 //
-//*****************************************************************************
-void
-ConfigSysTick() {
-	 //
-	// Register the interrupt handler function for Systick.
-	//
-	SysTickIntRegister(SysTickIntHandler);
-
-	// Set SysTick Priority to level 3
-	IntPrioritySet(FAULT_SYSTICK,0x60);
-
-	//
-	// Set up the period for the SysTick timer(Resolution 1us).
-	//
-	SysTickPeriodSet(SysCtlClockGet()/100);
-
-	//
-	// Enable interrupts to the processor.
-	//
-	IntMasterEnable();
-
-	//
-	// Enable the SysTick Interrupt.
-	//
-	SysTickIntEnable();
-
-	//
-	// Enable SysTick.
-	//
-	SysTickEnable();
-}
+//	//
+//	// Set up the period for the SysTick timer(Resolution 1us).
+//	//
+//	SysTickPeriodSet(SysCtlClockGet()/100);
+//
+//	//
+//	// Enable interrupts to the processor.
+//	//
+//	IntMasterEnable();
+//
+//	//
+//	// Enable the SysTick Interrupt.
+//	//
+//	SysTickIntEnable();
+//
+//	//
+//	// Enable SysTick.
+//	//
+//	SysTickEnable();
+//}
 /******************************************************************************
  * Enables the ADC peripherals
  * but the Sequence needs to be configured at run-time
