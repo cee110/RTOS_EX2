@@ -30,6 +30,7 @@
 #include "driverlib/adc.h"
 #include "exercise2.h"
 #include "uicontrol.h"
+#include "shockmon.h"
 #include "acquire.h"
 
 
@@ -496,40 +497,45 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 	uint32_t loopCount = 0;
 	uint32_t waitCount = 0;
 	// ---------------Run Acquire functionality----------------------//
-	ADC0AcquireStart(record.puiConfig, TriggerDetectISR);
-	StartTimerTrigger0(SysCtlClockGet()/10);//100ms
-	//---------
+	// If state == shocked, by pass trigger to start logging.
+	if (record.puiConfig->isShocked == false) {
+		ADC0AcquireStart(record.puiConfig, TriggerDetectISR);
+		StartTimerTrigger0(SysCtlClockGet()/10);//100ms
+		//---------
 
-	// Wait for trigger event
-	while((!eventflags) & ADC_TRIG_CTL){
-		/*
-		 * check for button press while waiting. Should really
-		 * use an ISR for buttons. This is getting way too messy.
-		 */
-		vPollSBoxButton(pContext, record.puiConfig);
-		#include "exitCheck.txt"
+		// Wait for trigger event
+		while((!eventflags) & ADC_TRIG_CTL){
+			/*
+			 * check for button press while waiting. Should really
+			 * use an ISR for buttons. This is getting way too messy.
+			 */
+			vPollSBoxButton(pContext, record.puiConfig);
+			#include "eventCheck.txt"
+		}
+		// Reset trigger event flag.
+		eventflags &= !ADC_TRIG_CTL;
+		// If we get to here that means ADC has triggered
+		// wave capture is about to start.
+//		UARTprintf("  Checkpoint!\r");
+	} else { // System was shocked. Reset flag.
+		ROM_IntMasterDisable();
+		record.puiConfig->isShocked = false;
+		ROM_IntMasterEnable();
 	}
-	// Reset trigger event flag.
-	eventflags &= !ADC_TRIG_CTL;
-
-
-	// If we get to here that means ADC conversion has started.
-	UARTprintf("  Checkpoint!\r");
-
-
 	while (1) {
-	// 	// Start logging data!
+	 	// Start logging data!
 		ADC0AcquireStart(record.puiConfig, GetSampleISR);
 		StartTimerTrigger0(GetPeriod(record.puiConfig->freq));
 		char str[5];
 		//reset loopcount
 		loopCount = 0;
+		// One loop outputs one sample set so there should be 96 loops
 		while(loopCount != MAX_SAMPLES)
 		{
 			loopCount++;
 			vPollSBoxButton(pContext, record.puiConfig);
 			computeSample(record.pContext,record.puiConfig);
-			#include "exitCheck.txt"
+			#include "eventCheck.txt"
 			PlotData(record.pContext);
 			SysCtlDelay(SysCtlClockGet() / 1000);
 		}
@@ -544,7 +550,7 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 		while(loopCount != waitCount) {
 			loopCount++;
 			vPollSBoxButton(pContext, record.puiConfig);
-			#include "exitCheck.txt"
+			#include "eventCheck.txt"
 			SysCtlDelay(SysCtlClockGet()/1000);
 		}
 	}

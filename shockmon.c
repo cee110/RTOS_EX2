@@ -51,6 +51,23 @@ volatile tuiConfig* psuiConfig;
 //
 //*****************************************************************************
 uint32_t g_ui32Flags;
+void
+MonitorStart() {
+	ROM_TimerEnable(TIMER1_BASE, TIMER_A);
+	//
+	// Disable ADC sequencers
+	//
+	ROM_ADCSequenceEnable(ADC1_BASE, 3);
+}
+
+void
+MonitorStop() {
+	ROM_TimerDisable(TIMER1_BASE, TIMER_A);
+	//
+	// Disable ADC sequencers
+	//
+	ROM_ADCSequenceDisable(ADC1_BASE, 3);
+}
 /****************************************************************
  * This interrupt handler is set up by AcquireInit to check
  * for the events that begin a data logging. This is when the voltage
@@ -69,19 +86,25 @@ void MonitorShockISR() {
    	}
    	ADCIntClear(ADC1_BASE, 3);
 	ADCSequenceDataGet(ADC1_BASE, 3, puiADC1Buffer);
+	ADCProcessorTrigger(ADC1_BASE, 3);
 	if (first_entry) {
 		first_entry = false;
 		prev1_value = ReadAccel(puiADC1Buffer[0]);
 	} else {
 		puiADC1Buffer[0] = ReadAccel(puiADC1Buffer[0]);
-		if (abs((int)puiADC1Buffer[0] - prev1_value) > 100) {
-			UARTprintf("Shock! : %d \r",puiADC1Buffer[0]);
+		// Shock monitor detects a change of more than 2.5g
+		if (abs((int)puiADC1Buffer[0] - prev1_value) > 240) {
+//			UARTprintf("Shock! : %d \r",puiADC1Buffer[0]);
+			MonitorStop();
 //			ADC0AcquireStop();
 			// Start logging waveform.
+			ROM_IntMasterDisable();
+			psuiConfig->isShocked = true;
+			ROM_IntMasterEnable();
 		}
 		prev1_value = puiADC1Buffer[0];
 	}
-	ADCProcessorTrigger(ADC1_BASE, 3);
+
 }
 
 //*****************************************************************************
@@ -182,7 +205,8 @@ void ADC1AcquireStart() {
 //	ADCIntEnable(ADC1_BASE, 3);
 }
 
-void MonitorShockInit() {
+void MonitorShockInit( tuiConfig* psuiConfig_t) {
+	psuiConfig = psuiConfig_t;
 	ADC1AcquireStart();
 	//Need to poll the ADC
 	ADCProcessorTrigger(ADC1_BASE, 3);

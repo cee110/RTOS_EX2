@@ -8,6 +8,7 @@
 #ifndef SHOCKMON_H_
 #define SHOCKMON_H_
 
-extern void MonitorShockInit();
+extern void MonitorShockInit( tuiConfig* psuiConfig_t);
+extern void MonitorStart();
 
 #endif /* SHOCKMON_H_ */

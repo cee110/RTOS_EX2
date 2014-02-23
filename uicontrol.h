@@ -42,6 +42,7 @@ typedef struct tsOpt
 	uint32_t sample_size;
 	channel_enum channelOpt;
 	uiState_t uiState;
+	bool isShocked;
 } tuiConfig;
 
 //extern tuiConfig uiConfig;

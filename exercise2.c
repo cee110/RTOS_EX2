@@ -288,19 +288,33 @@ main(void)
 	InitialiseTimer0();
 	// Initialise UI State
 	uiConfig.uiState = idle;
+	uiConfig.isShocked = false;
 	// Setup Display.
 	vInitUI(&sDisplayContext);
-	MonitorShockInit();
+	MonitorShockInit(&uiConfig);
 	char str_t[5];
 	while (1) {
 		/* vProcessSBoxButton should be called regularly */
 		vPollSBoxButton(&sDisplayContext,&uiConfig); 					/* poll keys, changing SBoxes if needed */
-		if (uiConfig.uiState == logging) {
-			AcquireMain(&sDisplayContext, &uiConfig); //This is an infinite loop till user pressed a button.
+
+		if ((uiConfig.uiState == logging)||(uiConfig.isShocked == true)) {
+			//This is an infinite loop till user pressed a button
+			// or the system was shocked.
+			// Start logging so state is changed to logging.
+			if (uiConfig.isShocked == true) {
+				uiConfig.freq = 1600;
+				uiConfig.sample_size = 1;
+				uiConfig.channelOpt = ACCEL;
+				ROM_IntMasterDisable();
+				uiConfig.uiState = logging;
+				ROM_IntMasterEnable();
+			}
+			AcquireMain(&sDisplayContext, &uiConfig);
+			// Acquire shock waveform if system was shocked.
+			// Freq = 1600Hz, N = 1, channel = ACCEL
 			// Redraw settings UI.
 			vPaintSBoxes(&sDisplayContext);
 		}
-//		SysCtlDelay(SysCtlClockGet() / 100);
 	}
 
 }
