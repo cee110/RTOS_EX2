@@ -64,21 +64,24 @@ void MonitorShockISR() {
     //
     HWREGBITW(&g_ui32Flags, 1) ^= 1;
 	// If ADC has not converted yet, exit ISR.
-//	if (!ADCIntStatus(ADC1_BASE, 3, false)) return;
-//	ADCIntClear(ADC1_BASE, 3);
-//	ADCSequenceDataGet(ADC1_BASE, 3,puiADC1Buffer);
-//	if (first_entry) {
-//		first_entry = false;
-//		prev1_value = ReadAccel(puiADC1Buffer[0]);
-//	} else {
-//		puiADC1Buffer[0] = ReadAccel(puiADC1Buffer[0]);
-//		if (abs((int)puiADC1Buffer[0] - prev1_value) > 100) {
-//			UARTprintf("Accel!\r");
+   	if (!ADCIntStatus(ADC1_BASE, 3, false)) {
+   		return;
+   	}
+   	ADCIntClear(ADC1_BASE, 3);
+	ADCSequenceDataGet(ADC1_BASE, 3, puiADC1Buffer);
+	if (first_entry) {
+		first_entry = false;
+		prev1_value = ReadAccel(puiADC1Buffer[0]);
+	} else {
+		puiADC1Buffer[0] = ReadAccel(puiADC1Buffer[0]);
+		if (abs((int)puiADC1Buffer[0] - prev1_value) > 100) {
+			UARTprintf("Shock! : %d \r",puiADC1Buffer[0]);
 //			ADC0AcquireStop();
-//			// Start logging waveform.
-//		}
-//		prev1_value = puiADC1Buffer[0];
-//	}
+			// Start logging waveform.
+		}
+		prev1_value = puiADC1Buffer[0];
+	}
+	ADCProcessorTrigger(ADC1_BASE, 3);
 }
 
 //*****************************************************************************
@@ -142,7 +145,7 @@ ConfigTimer1(uint32_t period) {
  * to look out for depends on the user's selection. The interrupt is
  * called every 100ms.
  ****************************************************************/
-void ADC1AcquireStart(tuiConfig* p_uiConfig, void (*pfnHandler)(void)) {
+void ADC1AcquireStart() {
 
 	//
 	// Enable sample sequence 3 with a timer trigger.  Sequence 3
@@ -150,16 +153,8 @@ void ADC1AcquireStart(tuiConfig* p_uiConfig, void (*pfnHandler)(void)) {
 	// conversion.  Each ADC module has 4 programmable sequences, sequence 0
 	// to sequence 3.
 	//
-	ADCSequenceConfigure(ADC1_BASE, 3, ADC_TRIGGER_TIMER, 0);
-	/*
-	 * Select the ADC channel for the specific GPIO pin to be used.
-	 */
-	uint32_t config = 0;
-	if (p_uiConfig->channelOpt == ACCEL) {
-		config = ADC_CTL_CH21;
-	} else if (p_uiConfig->channelOpt == VOLTS) {
-		config = ADC_CTL_CH0;
-	}
+	ADCSequenceConfigure(ADC1_BASE, 3, ADC_TRIGGER_PROCESSOR, 0);
+
 	//
 	// Configure step 0 on sequence 3.  Sample channel 0 (ADC_CTL_CH0) in
 	// single-ended mode (default) and configure the interrupt flag
@@ -171,23 +166,26 @@ void ADC1AcquireStart(tuiConfig* p_uiConfig, void (*pfnHandler)(void)) {
 	// information on the ADC sequences and steps, reference the datasheet.
 	//
 
-	ADCSequenceStepConfigure(ADC0_BASE, 3, 0, config |ADC_CTL_IE|
+	ADCSequenceStepConfigure(ADC1_BASE, 3, 0, ADC_CTL_CH21 |ADC_CTL_IE|
 			ADC_CTL_END);
 	//
 	// Since sample sequence 3 is now configured, it must be enabled.
 	//
-	ADCSequenceEnable(ADC0_BASE, 3);
+	ADCSequenceEnable(ADC1_BASE, 3);
 
 	//
 	// Clear the interrupt status flag.  This is done to make sure the
 	// interrupt flag is cleared before we sample.
 	//
-	ADCIntClear(ADC0_BASE, 3);
+	ADCIntClear(ADC1_BASE, 3);
 	// Enable the interrupt after calibration.
-	ADCIntEnable(ADC0_BASE, 3);
+//	ADCIntEnable(ADC1_BASE, 3);
 }
 
 void MonitorShockInit() {
+	ADC1AcquireStart();
+	//Need to poll the ADC
+	ADCProcessorTrigger(ADC1_BASE, 3);
 	ConfigTimer1(SysCtlClockGet()/100); //10ms
-}
+ }
 
