@@ -29,5 +29,5 @@ gcc/exercise2.o: exercise2.c \
  ../../../../driverlib/timer.h ../../../../inc/hw_timer.h \
  ../../../../driverlib/adc.h ../../../../inc/hw_nvic.h \
  ../../../../inc/hw_types.h ../../../../inc/hw_gpio.h \
- ../../../../inc/hw_ints.h ../drivers/buttons.h exercise2.h uicontrol.h \
- acquire.h shockmon.h
+ ../../../../inc/hw_ints.h ../drivers/buttons.h uicontrol.h acquire.h \
+ shockmon.h

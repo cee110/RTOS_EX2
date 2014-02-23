@@ -2,7 +2,5 @@ if ((record.puiConfig->uiState != logging)||(record.puiConfig->isShocked == true
 	// Stop logging, return to UI.
 	ADC0AcquireStop();
 	ClearAllScreen(record.pContext);
-	// Start Monitor
-	MonitorStart();
 	return;
 }

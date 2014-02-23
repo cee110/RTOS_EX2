@@ -21,4 +21,4 @@ gcc/uicontrol.o: uicontrol.c \
  /cygdrive/c\emsys\arm_eabi\arm-none-eabi\include\sys\types.h \
  /cygdrive/c\emsys\arm_eabi\arm-none-eabi\include\machine\types.h \
  ../../../../utils/uartstdio.h ../../../../driverlib/gpio.h \
- ../drivers/buttons.h ../drivers/cfal96x64x16.h exercise2.h uicontrol.h
+ ../drivers/buttons.h ../drivers/cfal96x64x16.h uicontrol.h

@@ -28,7 +28,6 @@
 #include "inc/hw_gpio.h"
 #include "driverlib/debug.h"
 #include "driverlib/adc.h"
-#include "exercise2.h"
 #include "uicontrol.h"
 #include "shockmon.h"
 #include "acquire.h"
@@ -242,9 +241,6 @@ computeSample(tContext *pContext, tuiConfig* p_uiConfig) {
 		SysCtlDelay(1000);
 
 	} while(size < p_uiConfig->sample_size);
-//	usprintf(debugChar, "%d", size);
-//	UARTprintf(debugChar);
-//	UARTprintf("\r");
 	// Reset data points;
 	datapoints.min = MAX_NUM;
 	datapoints.max = 0;
@@ -294,7 +290,6 @@ volatile uint32_t tobedelted = 0;
 /***************************************************************
  * Reads the ADC buffer for a new sample. Computes Min, Max, Ave
  * and sets the sample event flag when sampling is completed.
- * TODO: Implement Circular buffers.
  ***************************************************************/
 void GetSampleISR() {
 	// Reset pointer on new sample.
@@ -302,14 +297,13 @@ void GetSampleISR() {
 	ADCSequenceDataGet(ADC0_BASE, sequence, puiADC0StartPtr);
 	puiADC0StartPtr+=steplen;
 	/*
-	 * Check for wraparound. This also means one sequence has been
+	 * Check for wrap around. This also means one sequence has been
 	 * obtained so flag for sampling done.
 	 */
 	if (puiADC0StartPtr == puiADC0StopPtr) {
 		puiADC0StartPtr = puiADC0Buffer;
 		// Set the done bit of the event flag.
 		eventflags |= ADC_SAMPLE_DONE;
-	//	TODO:Stop Command Here
 		ADC0AcquireStop();
 	}
 	tobedelted++;
@@ -360,24 +354,24 @@ ADC0AcquireStart(tuiConfig* p_uiConfig, void (*pfnHandler)(void)) {
 	UARTprintf("ADC Acquire Start\n");
 
 	//
-	// Enable sample sequence 3 with a processor signal trigger.  Sequence 3
+	// Enable sample sequence with a processor signal trigger.  Sequence 3
 	// will do a single sample when the processor sends a signal to start the
-	// conversion.  Each ADC module has 4 programmable sequences, sequence 0
-	// to sequence 3.  This example is arbitrarily using sequence 3.
+	// conversion. Each ADC module has 4 programmable sequences, sequence 0
+	// to sequence 3.
 	//
 
 	ADCSequenceConfigure(ADC0_BASE, sequence, ADC_TRIGGER_TIMER, 1);
 	ADCIntRegister(ADC0_BASE, sequence, pfnHandler);
 
 	//
-	// Configure step 0 on sequence 3.  Sample channel 0 (ADC_CTL_CH0) in
+	// Configure step on sequence.  Sample channel  (ADC_CTL_CHX) in
 	// single-ended mode (default) and configure the interrupt flag
 	// (ADC_CTL_IE) to be set when the sample is done.  Tell the ADC logic
-	// that this is the last conversion on sequence 3 (ADC_CTL_END).  Sequence
+	// that this is the last conversion on sequence (ADC_CTL_END).  Sequence
 	// 3 has only one programmable step.  Sequence 1 and 2 have 4 steps, and
-	// sequence 0 has 8 programmable steps.  Since we are only doing a single
-	// conversion using sequence 3 we will only configure step 0.  For more
-	// information on the ADC sequences and steps, reference the datasheet.
+	// sequence 0 has 8 programmable steps. Each step need to be configured
+	// independently. For more information on the ADC sequences and steps,
+	// reference the datasheet.
 	//
 	uint32_t config = 0;
 	if (p_uiConfig->channelOpt == ACCEL) {
@@ -396,7 +390,7 @@ ADC0AcquireStart(tuiConfig* p_uiConfig, void (*pfnHandler)(void)) {
 	}
 
 	//
-	// Since sample sequence 3 is now configured, it must be enabled.
+	// Since sample sequence is now configured, it must be enabled.
 	//
 	ADCSequenceEnable(ADC0_BASE, sequence);
 
@@ -455,8 +449,6 @@ void TriggerDetectISR() {
 		}
 	}
 }
-// Described with its implementation.
-//void AcquireInit(tuiConfig* p_uiConfig);
 
 /***************************************************************
  * Main function to execute the acquire function. This starts the ADC
@@ -496,12 +488,13 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 	eventflags = 0;
 	uint32_t loopCount = 0;
 	uint32_t waitCount = 0;
+
+
 	// ---------------Run Acquire functionality----------------------//
 	// If state == shocked, by pass trigger to start logging.
 	if (record.puiConfig->isShocked == false) {
 		ADC0AcquireStart(record.puiConfig, TriggerDetectISR);
 		StartTimerTrigger0(SysCtlClockGet()/10);//100ms
-		//---------
 
 		// Wait for trigger event
 		while((!eventflags) & ADC_TRIG_CTL){
@@ -516,7 +509,7 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 		eventflags &= !ADC_TRIG_CTL;
 		// If we get to here that means ADC has triggered
 		// wave capture is about to start.
-//		UARTprintf("  Checkpoint!\r");
+		UARTprintf("Triggered!\r");
 	} else { // System was shocked. Reset flag.
 		ROM_IntMasterDisable();
 		record.puiConfig->isShocked = false;
@@ -540,7 +533,6 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 			SysCtlDelay(SysCtlClockGet() / 1000);
 		}
 
-		//TODO: Modify Loop to poll buttons.
 		if (record.puiConfig->channelOpt == ACCEL) {
 			waitCount = 1500;
 		} else if (record.puiConfig->channelOpt == VOLTS) {
@@ -551,84 +543,7 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 			loopCount++;
 			vPollSBoxButton(pContext, record.puiConfig);
 			#include "eventCheck.txt"
-			SysCtlDelay(SysCtlClockGet()/1000);
+			SysCtlDelay(SysCtlClockGet()/100);
 		}
 	}
 }
-/*****************************************************************
- * Stops the trigger detection functionality.
- *****************************************************************/
-//void
-//StopDetection() {
-//	// Disable the interrupt.
-//	ADCIntDisable(ADC0_BASE, 3);
-//	// Stop the timer from triggering ADC conversion.
-//	TimerControlTrigger(TIMER0_BASE, TIMER_A, false);
-//	// First remove the ISR.
-//	ADCIntUnregister(ADC0_BASE,3);
-//	// Disable the sequence.
-//	ADCSequenceDisable(ADC0_BASE, 3);
-//	//
-//	// The ADC0 peripheral is disabled till use.
-//	//
-////	SysCtlPeripheralDisable(SYSCTL_PERIPH_ADC0);
-//}
-
-
-
-/****************************************************************
- * This function should be called first in AcquireRun.
- * It starts the ADC interrupt to detect the beginning of data logging
- * which is when the voltage exceeds a changeable threshold or
- * the accelerometer z-axis changes g by more than 0.5. The trigger
- * to look out for depends on the user's selection. The interrupt is
- * called every 100ms.
- ****************************************************************/
-//void AcquireInit(tuiConfig* p_uiConfig) {
-//
-//	//
-//	// Enable sample sequence 3 with a timer trigger.  Sequence 3
-//	// will do a single sample when the processor sends a signal to start the
-//	// conversion.  Each ADC module has 4 programmable sequences, sequence 0
-//	// to sequence 3.
-//	//
-//	ADCSequenceConfigure(ADC0_BASE, 3, ADC_TRIGGER_TIMER, 3);
-//	// Register the interupt called after ADC conversion.
-//	ADCIntRegister(ADC0_BASE, 3, TriggerDetectISR);
-//	/*
-//	 * Select the ADC channel for the specific GPIO pin to be used.
-//	 */
-//	uint32_t config = 0;
-//	if (p_uiConfig->channelOpt == ACCEL) {
-//		config = ADC_CTL_CH21;
-//	} else if (p_uiConfig->channelOpt == VOLTS) {
-//		config = ADC_CTL_CH0;
-//	}
-//	//
-//	// Configure step 0 on sequence 3.  Sample channel 0 (ADC_CTL_CH0) in
-//	// single-ended mode (default) and configure the interrupt flag
-//	// (ADC_CTL_IE) to be set when the sample is done.  Tell the ADC logic
-//	// that this is the last conversion on sequence 3 (ADC_CTL_END).  Sequence
-//	// 3 has only one programmable step.  Sequence 1 and 2 have 4 steps, and
-//	// sequence 0 has 8 programmable steps.  Since we are only doing a single
-//	// conversion using sequence 3 we will only configure step 0.  For more
-//	// information on the ADC sequences and steps, reference the datasheet.
-//	//
-//
-//	ADCSequenceStepConfigure(ADC0_BASE, 3, 0, config |ADC_CTL_IE|
-//			ADC_CTL_END);
-//	//
-//	// Since sample sequence 3 is now configured, it must be enabled.
-//	//
-//	ADCSequenceEnable(ADC0_BASE, 3);
-//
-//	//
-//	// Clear the interrupt status flag.  This is done to make sure the
-//	// interrupt flag is cleared before we sample.
-//	//
-//	ADCIntClear(ADC0_BASE, 3);
-//	// Enable the interrupt after calibration.
-//	ADCIntEnable(ADC0_BASE, 3);
-//	// Set timer0 to trigger ADC every 100ms for data logging start event.
-//	StartTimer0(SysCtlClockGet()/10);
-//}

@@ -44,7 +44,6 @@
 #include "inc/hw_gpio.h"
 #include "inc/hw_ints.h"
 #include "drivers/buttons.h"
-#include "exercise2.h"
 #include "uicontrol.h"
 #include "acquire.h"
 #include "shockmon.h"
@@ -238,6 +237,7 @@ InitialiseADCPeripherals () {
 	HWREG(GPIO_PORTB_BASE + GPIO_O_AMSEL) |= GPIO_PIN_6;
 
 }
+
 /******************************************************************************
  * Enables the Timer peripherals
  * but the ADC trigger and timers needs to be configured at run-time
@@ -256,7 +256,7 @@ InitialiseTimer0() {
 }
 //*****************************************************************************
 //
-// Print "exercise1 World!" to the display.
+// High level App Controller.
 //
 //*****************************************************************************
 int
@@ -291,16 +291,20 @@ main(void)
 	uiConfig.isShocked = false;
 	// Setup Display.
 	vInitUI(&sDisplayContext);
+	// Start monitoring for shock.
 	MonitorShockInit(&uiConfig);
-	char str_t[5];
+
 	while (1) {
 		/* vProcessSBoxButton should be called regularly */
-		vPollSBoxButton(&sDisplayContext,&uiConfig); 					/* poll keys, changing SBoxes if needed */
+		/* poll keys, changing SBoxes if needed */
+		vPollSBoxButton(&sDisplayContext,&uiConfig);
 
 		if ((uiConfig.uiState == logging)||(uiConfig.isShocked == true)) {
-			//This is an infinite loop till user pressed a button
-			// or the system was shocked.
-			// Start logging so state is changed to logging.
+
+			// If the system was shocked from any state
+			//	change state to logging.
+			//	Acquire Main captures as normal to detect shock waveform
+			// Freq = 1600Hz, N = 1, channel = ACCEL
 			if (uiConfig.isShocked == true) {
 				uiConfig.freq = 1600;
 				uiConfig.sample_size = 1;
@@ -309,9 +313,8 @@ main(void)
 				uiConfig.uiState = logging;
 				ROM_IntMasterEnable();
 			}
+			//	This is an infinite loop till user pressed a button
 			AcquireMain(&sDisplayContext, &uiConfig);
-			// Acquire shock waveform if system was shocked.
-			// Freq = 1600Hz, N = 1, channel = ACCEL
 			// Redraw settings UI.
 			vPaintSBoxes(&sDisplayContext);
 		}

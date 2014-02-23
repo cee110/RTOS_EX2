@@ -12,7 +12,6 @@
 #include "driverlib/gpio.h"
 #include "drivers/buttons.h"
 #include "drivers/cfal96x64x16.h"
-#include "exercise2.h"
 #include "uicontrol.h"
 
 
@@ -200,6 +199,10 @@ void ClearAllScreen(tContext* pContext) {
 		GrContextForegroundSet(pContext, ClrBlack);
 		GrRectFill(pContext, &sRect);
 }
+
+/******************************************************************************
+ * Processes button select function. Select button is pressed to lock in a setting
+ ******************************************************************************/
 void
 processOptions(tuiConfig* p_uiConfig) {
 	if (pCurrentSBox == &pCurrentSBoxDefinitions[0])
@@ -214,7 +217,7 @@ processOptions(tuiConfig* p_uiConfig) {
 	}
 }
 /******************************************************************************
- * Controls all the button functions across the app.
+ * Controls all the button functions across the Application.
  * No other function should do this.
  ******************************************************************************/
 void vPollSBoxButton(tContext* psContext, tuiConfig* p_uiConfig)

@@ -60,13 +60,12 @@ void WriteString(
 		int selected, 		/* if non-zero change background */
 		int xpos, int ypos 	/* position on screen in 6*8 characters */
 		);
-extern void vPaintSBoxes(tContext *context);
-extern void processOptions(tuiConfig* p_uiConfig);
-extern void vPollSBoxButton(tContext* sContext, tuiConfig* p_uiConfig);
-extern void vInitUI(tContext* sContext); // Initialises
+extern void vPaintSBoxes(tContext *context); /* paints the configuration ui */
+extern void vPollSBoxButton(tContext* sContext, tuiConfig* p_uiConfig); /* Processes button presses */
+extern void vInitUI(tContext* sContext); // Initialises the UI.
 extern void DrawStartBanner(tContext* pContext, char* title); /* Draws a Title banner for the graph ui*/
 extern void ClearGraph(tContext* pContext); /* Clears the graph screen*/
-extern void ClearAllScreen(tContext* pContext); /*Resets screen*/
+extern void ClearAllScreen(tContext* pContext); /*Resets entire screen*/
 /*---------------------------------SBOX CREATION AND USE--------------------------*/
 /*------------------------see quickselect.c for use example-----------------------*/
 
