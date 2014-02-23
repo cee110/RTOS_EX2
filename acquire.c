@@ -492,6 +492,7 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 	// Resets the event flags
 	eventflags = 0;
 	uint32_t loopCount = 0;
+	uint32_t waitCount = 0;
 	// ---------------Run Acquire functionality----------------------//
 	ADC0AcquireStart(record.puiConfig, TriggerDetectISR);
 	StartTimerTrigger0(SysCtlClockGet()/10);//100ms
@@ -504,21 +505,16 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 		 * use an ISR for buttons. This is getting way too messy.
 		 */
 		vPollSBoxButton(pContext, record.puiConfig);
-		if (record.puiConfig->uiState == idle) {
-			// Stop logging, return to UI.
-//			break;
-			ADC0AcquireStop();
-			ClearAllScreen(record.pContext);
-			return;
-		}
+		#include "exitCheck.txt"
 	}
 	// Reset trigger event flag.
 	eventflags &= !ADC_TRIG_CTL;
-	//Configs for logging.
-	sequence = GetSequence(record.puiConfig);
-	steplen = (sequence == 0)? 8:1;
+
+
 	// If we get to here that means ADC conversion has started.
 	UARTprintf("  Checkpoint!\r");
+
+
 	while (1) {
 	// 	// Start logging data!
 		ADC0AcquireStart(record.puiConfig, GetSampleISR);
@@ -531,23 +527,23 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 			loopCount++;
 			vPollSBoxButton(pContext, record.puiConfig);
 			computeSample(record.pContext,record.puiConfig);
+			#include "exitCheck.txt"
 			PlotData(record.pContext);
-
-			if (record.puiConfig->uiState == idle) {
-				// Stop logging, return to UI.
-	//			break;
-				ADC0AcquireStop();
-				ClearAllScreen(record.pContext);
-				return;
-			}
 			SysCtlDelay(SysCtlClockGet() / 1000);
 		}
 
 		//TODO: Modify Loop to poll buttons.
 		if (record.puiConfig->channelOpt == ACCEL) {
-			SysCtlDelay(SysCtlClockGet());
+			waitCount = 1500;
 		} else if (record.puiConfig->channelOpt == VOLTS) {
-			SysCtlDelay(SysCtlClockGet()*10);
+			waitCount = 150;
+		}
+		loopCount = 0;
+		while(loopCount != waitCount) {
+			loopCount++;
+			vPollSBoxButton(pContext, record.puiConfig);
+			#include "exitCheck.txt"
+			SysCtlDelay(SysCtlClockGet()/1000);
 		}
 	}
 }

@@ -30,4 +30,4 @@ gcc/acquire.o: acquire.c \
  ../../../../inc/hw_nvic.h ../../../../inc/hw_types.h \
  ../../../../inc/hw_ints.h ../../../../inc/hw_gpio.h \
  ../../../../driverlib/debug.h ../../../../driverlib/adc.h exercise2.h \
- uicontrol.h acquire.h
+ uicontrol.h acquire.h exitCheck.txt

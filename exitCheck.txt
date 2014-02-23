@@ -1,0 +1,6 @@
+if (record.puiConfig->uiState != logging) {
+	// Stop logging, return to UI.
+	ADC0AcquireStop();
+	ClearAllScreen(record.pContext);
+	return;
+}

@@ -209,7 +209,7 @@ InitialiseADCPeripherals () {
 	// The ADC0 peripheral must be enabled for use.
 	//
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
-
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
 	//
 	// GPIO port E needs to be enabled
 	// so the GPIO pins for data input can be used.
