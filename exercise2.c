@@ -311,8 +311,11 @@ main(void)
 			}
 			//	This is an infinite loop till user pressed a button
 			AcquireMain(&sDisplayContext, &uiConfig);
-			// Redraw settings UI.
-			vPaintSBoxes(&sDisplayContext);
+
+			if (uiConfig.isShocked == false) {
+				// Redraw settings UI.
+				vPaintSBoxes(&sDisplayContext);
+			}
 		}
 	}
 

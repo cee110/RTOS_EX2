@@ -97,7 +97,7 @@ volatile uint32_t x_axis;
  ****************************************************************/
 tYBounds yBounds[] = {
 		{250, -50, ACCEL },				// Accelerometer unit is g*100
-		{200, 0, VOLTS }					// Voltage is in V*100
+		{300, -50, VOLTS }					// Voltage is in V*100
 };
 /****************************************************************
  * Initialise the series color
@@ -168,12 +168,12 @@ GetYAxis(channel_enum channel, uint32_t val) {
 				break;
 
 			} else if(channel == VOLTS){
-				if (val > record.pYbounds[i].MAX ) {
+				if ((int)val > record.pYbounds[i].MAX ) {
 					temp = MAX_SCREEN_Y_AXIS;
-				} else if (val < record.pYbounds[i].MIN) {
+				} else if ((int)val < record.pYbounds[i].MIN) {
 					temp = 0;
 				} else {
-					temp = ((val - record.pYbounds[i].MIN)*MAX_SCREEN_Y_AXIS)/ (record.pYbounds[i].MAX - record.pYbounds[i].MIN);
+					temp = (((int)val - record.pYbounds[i].MIN)*MAX_SCREEN_Y_AXIS)/ (record.pYbounds[i].MAX - record.pYbounds[i].MIN);
 				}
 				break;
 			}
@@ -206,7 +206,7 @@ PlotData(tContext* psContext){
 		ClearGraph(record.pContext);
 	}
 }
-volatile uint32_t tobedeleted;
+volatile uint32_t tobedeleted = 0;
 /************************************************************
  * Reads the ADC buffer to compute the min, max and ave data points.
  * The function always reads up to the written part of the buffer
@@ -313,7 +313,6 @@ void GetSampleISR() {
 		eventflags |= ADC_SAMPLE_DONE;
 		ADC0AcquireStop();
 	}
-	tobedeleted++;
 }
 /***************************************************************
  * Gets the Actual Frequency Equivalent of value
@@ -448,7 +447,7 @@ void TriggerDetectISR() {
 			}
 			prev_value = curr_value;
 		}
-	} else if (record.puiConfig->channelOpt == VOLTS){
+	} else if (record.puiConfig->channelOpt == VOLTS) {
 		if (puiADC0Buffer[0] > VTHRES) {
 			UARTprintf("Volts!\r");
 			eventflags|= ADC_TRIG_CTL;
@@ -502,7 +501,6 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 	if (record.puiConfig->isShocked == false) {
 		ADC0AcquireStart(record.puiConfig, TriggerDetectISR);
 		StartTimerTrigger0(SysCtlClockGet()/10);//100ms
-
 		// Wait for trigger event
 		while((!eventflags) & ADC_TRIG_CTL){
 			/*
