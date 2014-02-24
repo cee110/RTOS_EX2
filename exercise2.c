@@ -52,6 +52,11 @@
 //! not guaranteed. The observation is that there is a relationship between unregistering an
 //! old ISR for the specific ADC0  and registering a new ISR. If no unregistering occurs, the ADC works fine.
 //! However, with re-registry comes change of timer0 period so that may also be part of issue.
+//!
+//! Moreover, the shock monitor does not output a waveform when shock is detected whilst waiting for
+//! volts waveform. My guess is this may be related to the first problem. In this case there is an
+//! issue with online interrupt handler registry which is speculated to be fixed by placing the vector table at the
+//! beginning of the SRAM address using the command --first while linking.
 //
 //
 //*****************************************************************************
@@ -231,7 +236,8 @@ InitialiseADCPeripherals () {
 	//
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
 	HWREG(GPIO_PORTB_BASE + GPIO_O_AMSEL) |= GPIO_PIN_6;
-
+	//Not needed but just in case...
+	ROM_IntMasterEnable();
 }
 
 /******************************************************************************
