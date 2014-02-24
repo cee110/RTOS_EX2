@@ -33,6 +33,7 @@
 #include "inc/hw_gpio.h"
 #include "driverlib/debug.h"
 #include "driverlib/adc.h"
+#include "exercise2.h"
 #include "uicontrol.h"
 #include "acquire.h"
 
@@ -75,31 +76,6 @@ void LEDToggleISR() {
 		blink_count = 0;
 		MonitorStart();
 	}
-}
-/****************************************************************
- * Timer 2 is used to control the LED blink function on shock detection.
- * Thus its priority is not severe and hence it is group 3.
- *****************************************************************/
-void
-ConfigTimer2(uint32_t period) {
-	//Register Interrupt Handlers
-	TimerIntRegister(TIMER2_BASE, TIMER_A, LEDToggleISR);
-	// Set the priority of the Timers
-	// Set Timer2 as level 3 priority
-	IntPrioritySet(INT_TIMER2A, 0x61);
-	// Enable the timer peripherals.
-	//
-	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER2);
-	//
-	// Configure the two 32-bit periodic timers.
-	//
-	TimerConfigure(TIMER2_BASE, TIMER_CFG_PERIODIC);
-	ROM_TimerLoadSet(TIMER2_BASE, TIMER_A, period);
-	//
-	// Setup the interrupts for the timer timeouts.
-	//;
-	ROM_IntEnable(INT_TIMER2A);
-	ROM_TimerIntEnable(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
 }
 
 void
@@ -167,36 +143,6 @@ void MonitorShockISR() {
 	}
 }
 
-//*****************************************************************************
-//
-//	Timer1 is used solely for shock monitoring and thus,
-// 	its priority is the highest, group 1. 0 is reserved for exception handling.
-//
-//
-//*****************************************************************************
-
-void
-ConfigTimer1(uint32_t period) {
-	//Register Interrupt Handlers
-	TimerIntRegister(TIMER1_BASE, TIMER_A, MonitorShockISR);
-	// Set the priority of the Timers
-	// Set Timer1 as level 2 priority
-	IntPrioritySet(INT_TIMER1A, 0x20);
-	// Enable the timer peripherals.
-	//
-	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
-	//
-	// Configure the two 32-bit periodic timers.
-	//
-	TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
-	ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, period);
-	//
-	// Setup the interrupts for the timer timeouts.
-	//;
-	ROM_IntEnable(INT_TIMER1A);
-	ROM_TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
-
-}
 /****************************************************************
  * This function should be called first in AcquireRun.
  * It starts the ADC interrupt to detect the beginning of data logging
@@ -260,13 +206,13 @@ void MonitorShockInit( tuiConfig* psuiConfig_t) {
 	InitialiseShockLED();
 	//Initialise timer to control led
 
-	ConfigTimer2(SysCtlClockGet()/5);
+	ConfigTimer2(SysCtlClockGet()/5, LEDToggleISR);
 
 	ADC1AcquireStart();
 	//Need to poll the ADC
 	ADCProcessorTrigger(ADC1_BASE, 3);
 	//Configure timer for ADC shock monitor
-	ConfigTimer1(SysCtlClockGet()/100); //10ms
+	ConfigTimer1(SysCtlClockGet()/100, MonitorShockISR); //10ms
 	//Start Monitor
 	MonitorStart();
  }

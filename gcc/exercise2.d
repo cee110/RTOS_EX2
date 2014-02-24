@@ -30,4 +30,4 @@ gcc/exercise2.o: exercise2.c \
  ../../../../driverlib/adc.h ../../../../inc/hw_nvic.h \
  ../../../../inc/hw_types.h ../../../../inc/hw_gpio.h \
  ../../../../inc/hw_ints.h ../drivers/buttons.h uicontrol.h acquire.h \
- shockmon.h
+ shockmon.h exercise2.h

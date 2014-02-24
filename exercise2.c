@@ -30,6 +30,7 @@
 #include "uicontrol.h"
 #include "acquire.h"
 #include "shockmon.h"
+#include "exercise2.h"
 //*****************************************************************************
 //
 //
@@ -150,56 +151,65 @@ ConfigureUART(void)
     UARTStdioConfig(0, BAUDRATE, 16000000);
 }
 
+
 //*****************************************************************************
 //
-// The interrupt handler for the for Systick interrupt.
+//	Timer1 is used solely for shock monitoring and thus,
+// 	its priority is the highest, group 1. 0 is reserved for exception handling.
+//
 //
 //*****************************************************************************
+
 void
-SysTickIntHandler(void)
-{
-	ROM_IntMasterDisable();
-	if ((HWREG(NVIC_ST_CTRL) & NVIC_ST_CTRL_COUNT)!=0){}
-	current_time++;
-	ROM_IntMasterEnable();
+ConfigTimer1(uint32_t period, void (*pfnHandler)(void)) {
+	//Register Interrupt Handlers
+	TimerIntRegister(TIMER1_BASE, TIMER_A, pfnHandler);
+	// Set the priority of the Timers
+	// Set Timer1 as level 2 priority
+	IntPrioritySet(INT_TIMER1A, 0x20);
+	// Enable the timer peripherals.
+	//
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+	//
+	// Configure the two 32-bit periodic timers.
+	//
+	TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
+	ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, period);
+	//
+	// Setup the interrupts for the timer timeouts.
+	//;
+	ROM_IntEnable(INT_TIMER1A);
+	ROM_TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+
 }
 
-////*****************************************************************************
-////
-//// Sets up SysTick Timer to count down periodically with a period of 131us.
-//// Its priority is 3. 0 is reserved for exception handling.
-////
-////*****************************************************************************
-//void
-//ConfigSysTick() {
-//	 //
-//	// Register the interrupt handler function for Systick.
-//	//
-//	SysTickIntRegister(SysTickIntHandler);
-//
-//	// Set SysTick Priority to level 3
-//	IntPrioritySet(FAULT_SYSTICK,0x60);
-//
-//	//
-//	// Set up the period for the SysTick timer(Resolution 1us).
-//	//
-//	SysTickPeriodSet(SysCtlClockGet()/100);
-//
-//	//
-//	// Enable interrupts to the processor.
-//	//
-//	IntMasterEnable();
-//
-//	//
-//	// Enable the SysTick Interrupt.
-//	//
-//	SysTickIntEnable();
-//
-//	//
-//	// Enable SysTick.
-//	//
-//	SysTickEnable();
-//}
+/****************************************************************
+ * Timer 2 is used to control the LED blink function on shock detection.
+ * Thus its priority is not severe and hence it is group 3.
+ *****************************************************************/
+void
+ConfigTimer2(uint32_t period, void (*pfnHandler)(void)) {
+	//Register Interrupt Handlers
+	TimerIntRegister(TIMER2_BASE, TIMER_A, pfnHandler);
+	// Set the priority of the Timers
+	// Set Timer2 as level 3 priority
+	IntPrioritySet(INT_TIMER2A, 0x61);
+	// Enable the timer peripherals.
+	//
+	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER2);
+	//
+	// Configure the two 32-bit periodic timers.
+	//
+	TimerConfigure(TIMER2_BASE, TIMER_CFG_PERIODIC);
+	ROM_TimerLoadSet(TIMER2_BASE, TIMER_A, period);
+	//
+	// Setup the interrupts for the timer timeouts.
+	//;
+	ROM_IntEnable(INT_TIMER2A);
+	ROM_TimerIntEnable(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
+}
+
+
 /******************************************************************************
  * Enables the ADC peripherals
  * but the Sequence needs to be configured at run-time

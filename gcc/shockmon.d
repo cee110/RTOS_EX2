@@ -29,5 +29,5 @@ gcc/shockmon.o: shockmon.c \
  ../../../../driverlib/timer.h ../../../../inc/hw_timer.h \
  ../../../../inc/hw_nvic.h ../../../../inc/hw_types.h \
  ../../../../inc/hw_ints.h ../../../../inc/hw_gpio.h \
- ../../../../driverlib/debug.h ../../../../driverlib/adc.h uicontrol.h \
- acquire.h
+ ../../../../driverlib/debug.h ../../../../driverlib/adc.h exercise2.h \
+ uicontrol.h acquire.h
