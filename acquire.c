@@ -502,6 +502,7 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 		ADC0AcquireStart(record.puiConfig, TriggerDetectISR);
 		StartTimerTrigger0(SysCtlClockGet()/10);//100ms
 		// Wait for trigger event
+		// Loop also exits on button press.
 		while((!eventflags) & ADC_TRIG_CTL){
 			/*
 			 * check for button press while waiting. Should really
@@ -520,6 +521,7 @@ AcquireMain(tContext* pContext, tuiConfig* puiConfig_t) {
 		record.puiConfig->isShocked = false;
 		ROM_IntMasterEnable();
 	}
+	// Loop exits on button press.
 	while (1) {
 	 	// Start logging data!
 		ADC0AcquireStart(record.puiConfig, GetSampleISR);
