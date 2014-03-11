@@ -1,4 +1,5 @@
 <h1> Data Logging and Shock Detection App </h1> 
+<h3> For the LM4F232 Evaluation Board. </h3>
 This is a simple application that displays the accelerometer z-axis and voltage input data on the OLED display. To navigate through the settings, press up and down to scroll between different setting topics. Press left and right to scroll between options for a specific topic. Press SELECT to lock onto a setting. If SELECT is not pressed, the settings are not saved.
 The shock monitoring system starts at runtime but once a shock is detected, the waveform is plotted on a graph and the led blinks for about 10 seconds. Within this time, the graph can be cancelled but the led will still be blinking. Normal waveform can still be plotted but the shock monitoring will start again when the led stops blinking.
 The normal waveform graph can be cancelled at any time so there is no need for reset. New setting can be selected after cancelling a graph.
